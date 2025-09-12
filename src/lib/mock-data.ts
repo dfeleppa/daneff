@@ -1,0 +1,190 @@
+import { User, Project, Task, TaskStatus } from '../types'
+
+// Mock Users
+export const mockUsers: User[] = [
+  {
+    id: '1',
+    name: 'John Doe',
+    email: 'john@example.com',
+    role: 'admin',
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01'),
+  },
+  {
+    id: '2',
+    name: 'Jane Smith',
+    email: 'jane@example.com',
+    role: 'member',
+    createdAt: new Date('2024-01-02'),
+    updatedAt: new Date('2024-01-02'),
+  },
+  {
+    id: '3',
+    name: 'Mike Johnson',
+    email: 'mike@example.com',
+    role: 'member',
+    createdAt: new Date('2024-01-03'),
+    updatedAt: new Date('2024-01-03'),
+  },
+]
+
+// Mock Task Statuses
+export const mockTaskStatuses: TaskStatus[] = [
+  {
+    id: 'todo',
+    name: 'To Do',
+    color: '#6b7280',
+    order: 0,
+    projectId: '1',
+  },
+  {
+    id: 'in-progress',
+    name: 'In Progress',
+    color: '#3b82f6',
+    order: 1,
+    projectId: '1',
+  },
+  {
+    id: 'review',
+    name: 'Review',
+    color: '#f59e0b',
+    order: 2,
+    projectId: '1',
+  },
+  {
+    id: 'done',
+    name: 'Done',
+    color: '#10b981',
+    order: 3,
+    projectId: '1',
+  },
+]
+
+// Mock Projects
+export const mockProjects: Project[] = [
+  {
+    id: '1',
+    name: 'Website Redesign',
+    description: 'Complete redesign of the company website with modern UI/UX',
+    color: '#3b82f6',
+    status: 'active',
+    owner: mockUsers[0],
+    members: [mockUsers[0], mockUsers[1], mockUsers[2]],
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01'),
+    dueDate: new Date('2024-03-01'),
+  },
+  {
+    id: '2',
+    name: 'Mobile App Development',
+    description: 'Native mobile app for iOS and Android',
+    color: '#10b981',
+    status: 'active',
+    owner: mockUsers[1],
+    members: [mockUsers[1], mockUsers[2]],
+    createdAt: new Date('2024-01-05'),
+    updatedAt: new Date('2024-01-05'),
+    dueDate: new Date('2024-06-01'),
+  },
+  {
+    id: '3',
+    name: 'Marketing Campaign',
+    description: 'Q1 marketing campaign for product launch',
+    color: '#f59e0b',
+    status: 'active',
+    owner: mockUsers[0],
+    members: [mockUsers[0], mockUsers[1]],
+    createdAt: new Date('2024-01-10'),
+    updatedAt: new Date('2024-01-10'),
+    dueDate: new Date('2024-04-01'),
+  },
+]
+
+// Mock Tasks
+export const mockTasks: Task[] = [
+  {
+    id: '1',
+    title: 'Design homepage mockup',
+    description: 'Create high-fidelity mockup for the new homepage design',
+    status: mockTaskStatuses[1], // In Progress
+    priority: 'high',
+    assignee: mockUsers[1],
+    reporter: mockUsers[0],
+    project: mockProjects[0],
+    dueDate: new Date('2024-02-15'),
+    createdAt: new Date('2024-01-10'),
+    updatedAt: new Date('2024-01-12'),
+    tags: ['design', 'frontend'],
+    subtasks: [],
+    comments: [],
+    attachments: [],
+  },
+  {
+    id: '2',
+    title: 'Implement user authentication',
+    description: 'Set up JWT-based authentication system',
+    status: mockTaskStatuses[0], // To Do
+    priority: 'high',
+    assignee: mockUsers[2],
+    reporter: mockUsers[0],
+    project: mockProjects[0],
+    dueDate: new Date('2024-02-20'),
+    createdAt: new Date('2024-01-10'),
+    updatedAt: new Date('2024-01-10'),
+    tags: ['backend', 'security'],
+    subtasks: [],
+    comments: [],
+    attachments: [],
+  },
+  {
+    id: '3',
+    title: 'Create responsive navigation',
+    description: 'Build mobile-friendly navigation component',
+    status: mockTaskStatuses[3], // Done
+    priority: 'medium',
+    assignee: mockUsers[1],
+    reporter: mockUsers[0],
+    project: mockProjects[0],
+    dueDate: new Date('2024-02-10'),
+    createdAt: new Date('2024-01-08'),
+    updatedAt: new Date('2024-01-15'),
+    tags: ['frontend', 'mobile'],
+    subtasks: [],
+    comments: [],
+    attachments: [],
+  },
+  {
+    id: '4',
+    title: 'Set up development environment',
+    description: 'Configure development environment for mobile app',
+    status: mockTaskStatuses[1], // In Progress
+    priority: 'medium',
+    assignee: mockUsers[2],
+    reporter: mockUsers[1],
+    project: mockProjects[1],
+    dueDate: new Date('2024-02-18'),
+    createdAt: new Date('2024-01-12'),
+    updatedAt: new Date('2024-01-12'),
+    tags: ['setup', 'mobile'],
+    subtasks: [],
+    comments: [],
+    attachments: [],
+  },
+  {
+    id: '5',
+    title: 'Create social media content',
+    description: 'Develop content calendar for Q1 campaign',
+    status: mockTaskStatuses[2], // Review
+    priority: 'low',
+    assignee: mockUsers[1],
+    reporter: mockUsers[0],
+    project: mockProjects[2],
+    dueDate: new Date('2024-02-25'),
+    createdAt: new Date('2024-01-15'),
+    updatedAt: new Date('2024-01-18'),
+    tags: ['marketing', 'content'],
+    subtasks: [],
+    comments: [],
+    attachments: [],
+  },
+]
