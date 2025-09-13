@@ -1,6 +1,6 @@
 import { NextAuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
-import { syncUserWithSupabase } from './api/users'
+import { createSupabaseUser } from './api/users'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -16,19 +16,19 @@ export const authOptions: NextAuthOptions = {
         return false
       }
 
-      // Sync user with Supabase
-      if (user.email && user.name && user.id) {
-        try {
-          await syncUserWithSupabase({
-            id: user.id,
+      // Sync user to Supabase
+      try {
+        if (user.email && user.name) {
+          await createSupabaseUser({
             email: user.email,
             name: user.name,
-            image: user.image || undefined,
+            avatar_url: user.image || null,
+            google_id: user.id,
           })
-        } catch (error) {
-          console.error('Error syncing user with Supabase:', error)
-          // Don't block sign-in if sync fails
         }
+      } catch (error) {
+        console.error('Error syncing user to Supabase:', error)
+        // Don't block sign-in if sync fails
       }
 
       return true
