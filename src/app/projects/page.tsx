@@ -17,7 +17,7 @@ import {
   Activity,
   RefreshCw
 } from 'lucide-react'
-import { getUserWorkspaces } from '@/lib/api/users'
+import { getUserWorkspaces, createSupabaseUser } from '@/lib/api/users'
 import { getProjects, createProject, updateProject, deleteProject } from '@/lib/api/projects'
 
 interface Workspace {
@@ -93,15 +93,43 @@ export default function ProjectsPage() {
 
       // Get user's workspaces
       const userWorkspaces = await getUserWorkspaces(session.user.id)
-      setWorkspaces(userWorkspaces)
-
-      if (userWorkspaces.length > 0) {
-        // Get projects from the first workspace
-        const { projects: workspaceProjects } = await getProjects(userWorkspaces[0].id)
-        setProjects(workspaceProjects)
+      
+      // If no workspaces exist, create one automatically
+      if (userWorkspaces.length === 0 && session.user.email && session.user.name) {
+        console.log('No workspaces found, creating default workspace...')
+        
+        // Trigger user sync which will create a default workspace
+        await createSupabaseUser({
+          email: session.user.email,
+          name: session.user.name,
+          avatar_url: session.user.image || null,
+          google_id: session.user.id,
+        })
+        
+        // Wait a moment for the workspace to be created
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        
+        // Try to get workspaces again
+        const refreshedWorkspaces = await getUserWorkspaces(session.user.id)
+        setWorkspaces(refreshedWorkspaces)
+        
+        if (refreshedWorkspaces.length > 0) {
+          // Get projects from the first workspace
+          const { projects: workspaceProjects } = await getProjects(refreshedWorkspaces[0].id)
+          setProjects(workspaceProjects)
+        }
+      } else {
+        setWorkspaces(userWorkspaces)
+        
+        if (userWorkspaces.length > 0) {
+          // Get projects from the first workspace
+          const { projects: workspaceProjects } = await getProjects(userWorkspaces[0].id)
+          setProjects(workspaceProjects)
+        }
       }
     } catch (error) {
       console.error('Error loading projects:', error)
+      setError('Failed to load projects. Please refresh the page.')
     } finally {
       setLoading(false)
     }
@@ -124,6 +152,33 @@ export default function ProjectsPage() {
     setFilteredProjects(filtered)
   }
 
+  const createWorkspaceManually = async () => {
+    if (!session?.user?.email || !session?.user?.name) return
+    
+    try {
+      setError('Creating workspace...')
+      setLoading(true)
+      
+      await createSupabaseUser({
+        email: session.user.email,
+        name: session.user.name,
+        avatar_url: session.user.image || null,
+        google_id: session.user.id,
+      })
+      
+      // Wait and reload
+      setTimeout(() => {
+        setError(null)
+        loadProjects()
+      }, 2000)
+      
+    } catch (error) {
+      console.error('Failed to create workspace:', error)
+      setError('Failed to create workspace. Please try again.')
+      setLoading(false)
+    }
+  }
+
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!session?.user?.id) {
@@ -132,8 +187,34 @@ export default function ProjectsPage() {
     }
 
     if (!workspaces || workspaces.length === 0) {
-      setError('No workspace found. Please sign out and back in to create your workspace.')
-      return
+      setError('No workspace found. Creating workspace automatically...')
+      
+      // Try to create workspace automatically
+      if (session.user.email && session.user.name) {
+        try {
+          await createSupabaseUser({
+            email: session.user.email,
+            name: session.user.name,
+            avatar_url: session.user.image || null,
+            google_id: session.user.id,
+          })
+          
+          // Reload projects to get the new workspace
+          setTimeout(() => {
+            setError(null)
+            loadProjects()
+          }, 2000)
+          
+          return
+        } catch (error) {
+          console.error('Failed to create workspace:', error)
+          setError('Failed to create workspace. Please refresh the page and try again.')
+          return
+        }
+      } else {
+        setError('No workspace found. Please sign out and back in to create your workspace.')
+        return
+      }
     }
 
     try {
@@ -473,13 +554,25 @@ export default function ProjectsPage() {
               }
             </p>
             {projects.length === 0 && (
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 inline-flex items-center"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create Project
-              </button>
+              <>
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 inline-flex items-center mr-3"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Project
+                </button>
+                {workspaces.length === 0 && (
+                  <button
+                    onClick={createWorkspaceManually}
+                    disabled={loading}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 inline-flex items-center disabled:opacity-50"
+                  >
+                    <FolderOpen className="h-4 w-4 mr-2" />
+                    Create Workspace
+                  </button>
+                )}
+              </>
             )}
           </div>
         )}
