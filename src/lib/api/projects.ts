@@ -194,45 +194,51 @@ export async function getProjectTasks(projectId: string) {
   console.log('Fetching tasks for project:', projectId)
   
   try {
-    const { data, error } = await supabase
+    // Get tasks without foreign key joins since we removed those constraints
+    const { data: tasksData, error: tasksError } = await supabase
       .from('tasks')
-      .select(`
-        *,
-        assignee:users!tasks_assignee_id_fkey (
-          id,
-          name,
-          email,
-          avatar_url
-        ),
-        creator:users!tasks_reporter_id_fkey (
-          id,
-          name,
-          email,
-          avatar_url
-        ),
-        status:task_statuses!tasks_status_id_fkey (
-          id,
-          name,
-          color,
-          order_index
-        )
-      `)
+      .select('*')
       .eq('project_id', projectId)
       .order('created_at', { ascending: false })
 
-    if (error) {
-      console.error('Error fetching tasks:', error)
+    if (tasksError) {
+      console.error('Error fetching tasks:', tasksError)
       console.error('Error details:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
+        message: tasksError.message,
+        details: tasksError.details,
+        hint: tasksError.hint,
+        code: tasksError.code
       })
-      return { tasks: [], error }
+      return { tasks: [], error: tasksError }
     }
 
-    console.log('✅ Tasks fetched successfully:', data?.length || 0, 'tasks')
-    return { tasks: data || [], error: null }
+    // Get task statuses separately
+    const { data: statusesData, error: statusesError } = await supabase
+      .from('task_statuses')
+      .select('*')
+      .eq('project_id', projectId)
+
+    if (statusesError) {
+      console.error('Error fetching task statuses:', statusesError)
+      return { tasks: [], error: statusesError }
+    }
+
+    // Combine tasks with their status information
+    const tasks = (tasksData || []).map(task => {
+      const status = statusesData?.find(s => s.id === task.status_id)
+      return {
+        ...task,
+        status: status ? {
+          id: status.id,
+          name: status.name,
+          color: status.color,
+          order_index: status.order_index
+        } : null
+      }
+    })
+
+    console.log('✅ Tasks fetched successfully:', tasks.length, 'tasks')
+    return { tasks, error: null }
   } catch (error: any) {
     console.error('Exception in getProjectTasks:', error)
     return { tasks: [], error }
@@ -274,27 +280,7 @@ export async function createTask(taskData: Omit<Task, 'id' | 'created_at' | 'upd
   const { data, error } = await supabase
     .from('tasks')
     .insert(taskData)
-    .select(`
-      *,
-      assignee:users!tasks_assignee_id_fkey (
-        id,
-        name,
-        email,
-        avatar_url
-      ),
-      creator:users!tasks_creator_id_fkey (
-        id,
-        name,
-        email,
-        avatar_url
-      ),
-      status:task_statuses!tasks_status_id_fkey (
-        id,
-        name,
-        color,
-        order_index
-      )
-    `)
+    .select('*')
     .single()
 
   if (error) {
@@ -311,27 +297,7 @@ export async function updateTask(taskId: string, updates: Partial<Omit<Task, 'id
     .from('tasks')
     .update(updates)
     .eq('id', taskId)
-    .select(`
-      *,
-      assignee:users!tasks_assignee_id_fkey (
-        id,
-        name,
-        email,
-        avatar_url
-      ),
-      creator:users!tasks_creator_id_fkey (
-        id,
-        name,
-        email,
-        avatar_url
-      ),
-      status:task_statuses!tasks_status_id_fkey (
-        id,
-        name,
-        color,
-        order_index
-      )
-    `)
+    .select('*')
     .single()
 
   if (error) {
