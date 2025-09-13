@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { getUserWorkspaces, createSupabaseUser } from '@/lib/api/users'
 import { getProjects, createProject, updateProject, deleteProject } from '@/lib/api/projects'
+import { syncProjectsWithCalendar, hasCalendarPermission, createProjectCalendarEvent } from '@/lib/api/calendar'
 
 interface Workspace {
   id: string
@@ -57,11 +58,14 @@ export default function ProjectsPage() {
   const [success, setSuccess] = useState<string | null>(null)
   const [createLoading, setCreateLoading] = useState(false)
   const [updateLoading, setUpdateLoading] = useState(false)
+  const [calendarSyncLoading, setCalendarSyncLoading] = useState(false)
+  const [hasCalendarAccess, setHasCalendarAccess] = useState(false)
   const [newProject, setNewProject] = useState({
     name: '',
     description: '',
     color: '#3b82f6',
     status: 'active',
+    due_date: '',
   })
 
   // Clear messages after 5 seconds
@@ -78,6 +82,7 @@ export default function ProjectsPage() {
   useEffect(() => {
     if (session?.user?.id) {
       loadProjects()
+      checkCalendarPermission()
     }
   }, [session])
 
@@ -179,6 +184,34 @@ export default function ProjectsPage() {
     }
   }
 
+  const checkCalendarPermission = async () => {
+    try {
+      const hasAccess = await hasCalendarPermission()
+      setHasCalendarAccess(hasAccess)
+    } catch (error) {
+      console.error('Error checking calendar permission:', error)
+      setHasCalendarAccess(false)
+    }
+  }
+
+  const handleSyncWithCalendar = async () => {
+    if (!hasCalendarAccess) {
+      setError('Google Calendar access not available. Please sign out and sign in again to grant calendar permissions.')
+      return
+    }
+
+    try {
+      setCalendarSyncLoading(true)
+      await syncProjectsWithCalendar(projects)
+      setSuccess('✅ Projects synced with Google Calendar!')
+    } catch (error) {
+      console.error('Error syncing with calendar:', error)
+      setError('Failed to sync with Google Calendar. Please try again.')
+    } finally {
+      setCalendarSyncLoading(false)
+    }
+  }
+
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!session?.user?.id) {
@@ -231,6 +264,7 @@ export default function ProjectsPage() {
         status: newProject.status as 'active' | 'on_hold' | 'completed' | 'archived',
         workspace_id: workspaces[0].id,
         owner_id: session.user.id,
+        due_date: newProject.due_date || null,
       })
 
       if (createError) {
@@ -247,8 +281,20 @@ export default function ProjectsPage() {
           description: '',
           color: '#3b82f6',
           status: 'active',
+          due_date: '',
         })
         setSuccess('Project created successfully!')
+        
+        // Create calendar event if due date is set and calendar is available
+        if (project.due_date && hasCalendarAccess) {
+          try {
+            await createProjectCalendarEvent(project)
+            setSuccess('Project created and added to Google Calendar!')
+          } catch (error) {
+            console.error('Error creating calendar event:', error)
+            // Don't fail the project creation if calendar sync fails
+          }
+        }
         
         // Reload projects to ensure consistency
         setTimeout(() => loadProjects(), 1000)
@@ -367,6 +413,16 @@ export default function ProjectsPage() {
                 <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                 Refresh
               </button>
+              {hasCalendarAccess && (
+                <button
+                  onClick={handleSyncWithCalendar}
+                  disabled={calendarSyncLoading}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center disabled:opacity-50"
+                >
+                  <Calendar className={`h-4 w-4 mr-2 ${calendarSyncLoading ? 'animate-pulse' : ''}`} />
+                  {calendarSyncLoading ? 'Syncing...' : 'Sync Calendar'}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -627,6 +683,23 @@ export default function ProjectsPage() {
                     />
                   ))}
                 </div>
+              </div>
+              
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Due Date (Optional)
+                </label>
+                <input
+                  type="date"
+                  value={newProject.due_date}
+                  onChange={(e) => setNewProject({ ...newProject, due_date: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {hasCalendarAccess && newProject.due_date && (
+                  <p className="text-sm text-green-600 mt-1">
+                    📅 Will be added to Google Calendar
+                  </p>
+                )}
               </div>
               
               <div className="mb-6">

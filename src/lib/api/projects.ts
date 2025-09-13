@@ -108,6 +108,7 @@ export async function createProject(projectData: Omit<Project, 'id' | 'created_a
         status: projectData.status || 'active',
         workspace_id: projectData.workspace_id,
         owner_id: projectData.owner_id,
+        due_date: projectData.due_date,
       })
       .select()
       .single()
