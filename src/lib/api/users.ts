@@ -23,6 +23,8 @@ export async function createSupabaseUser(userData: {
   google_id: string
 }) {
   try {
+    console.log('🔍 Creating/updating Supabase user:', userData.email)
+    
     // First, check if user already exists by Google ID (stored in a separate field)
     const { data: existingUsers, error: searchError } = await supabase
       .from('users')
@@ -36,6 +38,7 @@ export async function createSupabaseUser(userData: {
     }
 
     if (existingUsers && existingUsers.length > 0) {
+      console.log('✅ User exists, updating:', existingUsers[0].id)
       // User exists, update their info
       const { data: updatedUser, error: updateError } = await supabase
         .from('users')
@@ -53,16 +56,24 @@ export async function createSupabaseUser(userData: {
         throw updateError
       }
 
+      // Check if user has workspaces
+      const userWorkspaces = await getUserWorkspaces(existingUsers[0].id)
+      if (userWorkspaces.length === 0) {
+        console.log('🏗️ User has no workspaces, creating default workspace...')
+        await createDefaultWorkspace(existingUsers[0].id, userData.name)
+      }
+
       return updatedUser
     } else {
-      // User doesn't exist, create new user (Supabase will auto-generate UUID)
+      console.log('🆕 Creating new user...')
+      // User doesn't exist, create new user using Google OAuth ID as the primary key
       const { data: newUser, error: createError } = await supabase
         .from('users')
         .insert({
+          id: userData.google_id, // Use Google ID as primary key
           email: userData.email,
           name: userData.name,
           avatar_url: userData.avatar_url,
-          // Don't specify ID, let Supabase generate UUID
         })
         .select()
         .single()
@@ -72,10 +83,14 @@ export async function createSupabaseUser(userData: {
         throw createError
       }
 
+      console.log('✅ User created, creating default workspace...')
+      // Create a default workspace for new users
+      await createDefaultWorkspace(newUser.id, userData.name)
+
       return newUser
     }
   } catch (error) {
-    console.error('Error in createSupabaseUser:', error)
+    console.error('❌ Error in createSupabaseUser:', error)
     throw error
   }
 }
@@ -154,6 +169,8 @@ export async function syncUserWithSupabase(authUser: {
 // Create a default workspace for new users
 async function createDefaultWorkspace(userId: string, userName: string) {
   try {
+    console.log('🏗️ Creating default workspace for user:', userId, userName)
+    
     const workspaceName = `${userName}'s Workspace`
     const workspaceSlug = workspaceName.toLowerCase().replace(/[^a-z0-9]/g, '-')
 
@@ -170,9 +187,11 @@ async function createDefaultWorkspace(userId: string, userName: string) {
       .single()
 
     if (workspaceError) {
-      console.error('Error creating workspace:', workspaceError)
-      return
+      console.error('❌ Error creating workspace:', workspaceError)
+      throw workspaceError
     }
+
+    console.log('✅ Workspace created:', workspace.id)
 
     // Add user as workspace admin
     const { error: memberError } = await supabase
@@ -184,8 +203,11 @@ async function createDefaultWorkspace(userId: string, userName: string) {
       })
 
     if (memberError) {
-      console.error('Error adding user to workspace:', memberError)
+      console.error('❌ Error adding user to workspace:', memberError)
+      throw memberError
     }
+
+    console.log('✅ User added as workspace admin')
 
     // Create a sample project
     const { data: project, error: projectError } = await supabase
@@ -202,39 +224,45 @@ async function createDefaultWorkspace(userId: string, userName: string) {
       .single()
 
     if (projectError) {
-      console.error('Error creating project:', projectError)
-      return
+      console.error('❌ Error creating project:', projectError)
+      // Don't throw here, workspace creation is more important
+    } else {
+      console.log('✅ Sample project created:', project.id)
+
+      // Add user as project admin
+      await supabase
+        .from('project_members')
+        .insert({
+          project_id: project.id,
+          user_id: userId,
+          role: 'admin',
+        })
+
+      // Create default task statuses
+      const defaultStatuses = [
+        { name: 'To Do', color: '#6b7280', order_index: 0 },
+        { name: 'In Progress', color: '#3b82f6', order_index: 1 },
+        { name: 'Review', color: '#f59e0b', order_index: 2 },
+        { name: 'Done', color: '#10b981', order_index: 3 },
+      ]
+
+      await supabase
+        .from('task_statuses')
+        .insert(
+          defaultStatuses.map(status => ({
+            ...status,
+            project_id: project.id,
+          }))
+        )
+
+      console.log('✅ Task statuses created')
     }
 
-    // Add user as project admin
-    await supabase
-      .from('project_members')
-      .insert({
-        project_id: project.id,
-        user_id: userId,
-        role: 'admin',
-      })
-
-    // Create default task statuses
-    const defaultStatuses = [
-      { name: 'To Do', color: '#6b7280', order_index: 0 },
-      { name: 'In Progress', color: '#3b82f6', order_index: 1 },
-      { name: 'Review', color: '#f59e0b', order_index: 2 },
-      { name: 'Done', color: '#10b981', order_index: 3 },
-    ]
-
-    await supabase
-      .from('task_statuses')
-      .insert(
-        defaultStatuses.map(status => ({
-          ...status,
-          project_id: project.id,
-        }))
-      )
-
-    console.log('Default workspace and project created successfully')
+    console.log('🎉 Default workspace and project created successfully!')
+    return workspace
   } catch (error) {
-    console.error('Error creating default workspace:', error)
+    console.error('❌ Error creating default workspace:', error)
+    throw error
   }
 }
 
