@@ -1,16 +1,28 @@
 import { createClient } from '@supabase/supabase-js'
 import { Database } from './database.types'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-// Debug log for production troubleshooting (remove after fixing)
-if (typeof window !== 'undefined') {
-  console.log('Supabase URL:', supabaseUrl ? 'Set' : 'Not set')
-  console.log('Supabase Key:', supabaseAnonKey ? 'Set' : 'Not set')
+// Debug log for troubleshooting
+console.log('Supabase Environment Variables:')
+console.log('- URL:', supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'MISSING')
+console.log('- Key:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'MISSING')
+console.log('- NODE_ENV:', process.env.NODE_ENV)
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Missing Supabase environment variables!')
+  console.error('NEXT_PUBLIC_SUPABASE_URL:', !!supabaseUrl)
+  console.error('NEXT_PUBLIC_SUPABASE_ANON_KEY:', !!supabaseAnonKey)
+  throw new Error('Missing required Supabase environment variables')
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+  },
+})
 
 // Helper function to get the current user
 export const getCurrentUser = async () => {
