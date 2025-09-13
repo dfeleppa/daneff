@@ -22,9 +22,9 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Calendar, MoreHorizontal, Plus, ArrowLeft } from 'lucide-react'
+import { Calendar, MoreHorizontal, Plus, ArrowLeft, Trash2 } from 'lucide-react'
 import { getUserWorkspaces } from '@/lib/api/users'
-import { getProjects, getProjectTasks, getTaskStatuses, updateTask, createTask } from '@/lib/api/projects'
+import { getProjects, getProjectTasks, getTaskStatuses, updateTask, createTask, deleteTask } from '@/lib/api/projects'
 
 interface Task {
   id: string
@@ -73,9 +73,12 @@ interface Project {
 interface TaskCardProps {
   task: Task
   onEdit?: (task: Task) => void
+  onDelete?: (task: Task) => void
 }
 
-function TaskCard({ task, onEdit }: TaskCardProps) {
+function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
+  const [showMenu, setShowMenu] = useState(false)
+  
   const {
     attributes,
     listeners,
@@ -106,12 +109,43 @@ function TaskCard({ task, onEdit }: TaskCardProps) {
     >
       <div className="flex justify-between items-start mb-2">
         <h3 className="text-sm font-medium text-gray-900 line-clamp-2">{task.title}</h3>
-        <button
-          onClick={() => onEdit?.(task)}
-          className="text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100"
-        >
-          <MoreHorizontal className="w-4 h-4" />
-        </button>
+        <div className="relative">
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setShowMenu(!showMenu)
+            }}
+            className="text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 p-1"
+          >
+            <MoreHorizontal className="w-4 h-4" />
+          </button>
+          
+          {showMenu && (
+            <div className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowMenu(false)
+                  onEdit?.(task)
+                }}
+                className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg"
+              >
+                Edit
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowMenu(false)
+                  onDelete?.(task)
+                }}
+                className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-b-lg flex items-center"
+              >
+                <Trash2 className="w-3 h-3 mr-1" />
+                Delete
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {task.description && (
@@ -157,9 +191,11 @@ interface ColumnProps {
   status: TaskStatus
   tasks: Task[]
   onAddTask: (statusId: string) => void
+  onEditTask: (task: Task) => void
+  onDeleteTask: (task: Task) => void
 }
 
-function Column({ status, tasks, onAddTask }: ColumnProps) {
+function Column({ status, tasks, onAddTask, onEditTask, onDeleteTask }: ColumnProps) {
   return (
     <div className="flex-shrink-0 w-72">
       <div className="bg-gray-50 rounded-lg p-4">
@@ -186,7 +222,12 @@ function Column({ status, tasks, onAddTask }: ColumnProps) {
         >
           <div className="space-y-2 min-h-24">
             {tasks.map((task) => (
-              <TaskCard key={task.id} task={task} />
+              <TaskCard 
+                key={task.id} 
+                task={task} 
+                onEdit={onEditTask}
+                onDelete={onDeleteTask}
+              />
             ))}
           </div>
         </SortableContext>
@@ -206,7 +247,12 @@ function BoardPageContent() {
   const [taskStatuses, setTaskStatuses] = useState<TaskStatus[]>([])
   const [loading, setLoading] = useState(true)
   const [showNewTaskModal, setShowNewTaskModal] = useState(false)
+  const [showEditTaskModal, setShowEditTaskModal] = useState(false)
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [newTaskStatusId, setNewTaskStatusId] = useState<string | null>(null)
+  const [taskLoading, setTaskLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
@@ -220,6 +266,17 @@ function BoardPageContent() {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   )
+
+  // Clear messages after 5 seconds
+  useEffect(() => {
+    if (error || success) {
+      const timer = setTimeout(() => {
+        setError(null)
+        setSuccess(null)
+      }, 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [error, success])
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -299,12 +356,41 @@ function BoardPageContent() {
     setShowNewTaskModal(true)
   }
 
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task)
+    setShowEditTaskModal(true)
+  }
+
+  const handleDeleteTask = async (task: Task) => {
+    if (!confirm(`Are you sure you want to delete "${task.title}"? This action cannot be undone.`)) {
+      return
+    }
+
+    try {
+      setError(null)
+      const { success } = await deleteTask(task.id)
+
+      if (success) {
+        setTasks(tasks.filter(t => t.id !== task.id))
+        setSuccess('Task deleted successfully!')
+      } else {
+        setError('Failed to delete task. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error deleting task:', error)
+      setError('Failed to delete task. Please try again.')
+    }
+  }
+
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedProject || !newTaskStatusId || !session?.user?.id) return
 
     try {
-      const { task } = await createTask({
+      setTaskLoading(true)
+      setError(null)
+
+      const { task, error: createError } = await createTask({
         title: newTask.title,
         description: newTask.description || null,
         status_id: newTaskStatusId,
@@ -312,8 +398,13 @@ function BoardPageContent() {
         due_date: newTask.due_date || null,
         project_id: selectedProject.id,
         assignee_id: session.user.id,
-        reporter_id: session.user.id, // Add the required reporter_id field
+        reporter_id: session.user.id,
       })
+
+      if (createError) {
+        setError('Failed to create task. Please try again.')
+        return
+      }
 
       if (task) {
         setTasks([...tasks, task])
@@ -325,9 +416,47 @@ function BoardPageContent() {
           due_date: '',
         })
         setNewTaskStatusId(null)
+        setSuccess('Task created successfully!')
       }
     } catch (error) {
       console.error('Error creating task:', error)
+      setError('Failed to create task. Please try again.')
+    } finally {
+      setTaskLoading(false)
+    }
+  }
+
+  const handleUpdateTask = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingTask) return
+
+    try {
+      setTaskLoading(true)
+      setError(null)
+
+      const { task, error: updateError } = await updateTask(editingTask.id, {
+        title: editingTask.title,
+        description: editingTask.description,
+        priority: editingTask.priority,
+        due_date: editingTask.due_date,
+      })
+
+      if (updateError) {
+        setError('Failed to update task. Please try again.')
+        return
+      }
+
+      if (task) {
+        setTasks(tasks.map(t => t.id === task.id ? task : t))
+        setShowEditTaskModal(false)
+        setEditingTask(null)
+        setSuccess('Task updated successfully!')
+      }
+    } catch (error) {
+      console.error('Error updating task:', error)
+      setError('Failed to update task. Please try again.')
+    } finally {
+      setTaskLoading(false)
     }
   }
 
@@ -428,6 +557,37 @@ function BoardPageContent() {
 
       {/* Board Content */}
       <main className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Error and Success Messages */}
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-800">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-green-800">{success}</p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div className="mb-6 flex items-center space-x-4">
           <Link
             href="/projects"
@@ -454,6 +614,8 @@ function BoardPageContent() {
                 status={status}
                 tasks={tasks}
                 onAddTask={handleAddTask}
+                onEditTask={handleEditTask}
+                onDeleteTask={handleDeleteTask}
               />
             ))}
           </div>
@@ -530,9 +692,106 @@ function BoardPageContent() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  disabled={taskLoading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                 >
-                  Create Task
+                  {taskLoading && (
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  )}
+                  {taskLoading ? 'Creating...' : 'Create Task'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Task Modal */}
+      {showEditTaskModal && editingTask && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Edit Task</h2>
+            <form onSubmit={handleUpdateTask}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Task Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editingTask.title}
+                  onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter task title"
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={editingTask.description || ''}
+                  onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-20"
+                  placeholder="Enter task description"
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Priority
+                </label>
+                <select
+                  value={editingTask.priority}
+                  onChange={(e) => setEditingTask({ ...editingTask, priority: e.target.value as 'low' | 'medium' | 'high' | 'urgent' })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+              
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Due Date
+                </label>
+                <input
+                  type="date"
+                  value={editingTask.due_date || ''}
+                  onChange={(e) => setEditingTask({ ...editingTask, due_date: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditTaskModal(false)
+                    setEditingTask(null)
+                  }}
+                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={taskLoading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                >
+                  {taskLoading && (
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  )}
+                  {taskLoading ? 'Updating...' : 'Update Task'}
                 </button>
               </div>
             </form>
