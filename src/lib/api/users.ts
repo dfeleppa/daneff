@@ -15,6 +15,71 @@ interface User {
   updated_at: string
 }
 
+// Create or update user in Supabase with proper UUID handling
+export async function createSupabaseUser(userData: {
+  email: string
+  name: string
+  avatar_url: string | null
+  google_id: string
+}) {
+  try {
+    // First, check if user already exists by Google ID (stored in a separate field)
+    const { data: existingUsers, error: searchError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', userData.email) // Search by email since Google ID isn't stored in current schema
+      .limit(1)
+
+    if (searchError && searchError.code !== 'PGRST116') {
+      console.error('Error searching for existing user:', searchError)
+      throw searchError
+    }
+
+    if (existingUsers && existingUsers.length > 0) {
+      // User exists, update their info
+      const { data: updatedUser, error: updateError } = await supabase
+        .from('users')
+        .update({
+          name: userData.name,
+          avatar_url: userData.avatar_url,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existingUsers[0].id)
+        .select()
+        .single()
+
+      if (updateError) {
+        console.error('Error updating user:', updateError)
+        throw updateError
+      }
+
+      return updatedUser
+    } else {
+      // User doesn't exist, create new user (Supabase will auto-generate UUID)
+      const { data: newUser, error: createError } = await supabase
+        .from('users')
+        .insert({
+          email: userData.email,
+          name: userData.name,
+          avatar_url: userData.avatar_url,
+          // Don't specify ID, let Supabase generate UUID
+        })
+        .select()
+        .single()
+
+      if (createError) {
+        console.error('Error creating user:', createError)
+        throw createError
+      }
+
+      return newUser
+    }
+  } catch (error) {
+    console.error('Error in createSupabaseUser:', error)
+    throw error
+  }
+}
+
 // Sync authenticated user with Supabase users table
 export async function syncUserWithSupabase(authUser: {
   id: string
