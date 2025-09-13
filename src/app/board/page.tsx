@@ -88,6 +88,7 @@ function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
     setNodeRef,
     transform,
     transition,
+    isDragging,
   } = useSortable({ id: task.id })
 
   const style = {
@@ -102,89 +103,115 @@ function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
     urgent: 'bg-red-100 text-red-800',
   }
 
+  // Close menu when clicking outside
+  useEffect(() => {
+    if (showMenu) {
+      const handleClickOutside = () => setShowMenu(false)
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [showMenu])
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
-      className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-3 cursor-grab hover:shadow-md transition-shadow group"
+      className={`bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-3 hover:shadow-md transition-shadow group relative ${
+        isDragging ? 'opacity-50' : ''
+      }`}
     >
-      <div className="flex justify-between items-start mb-2">
-        <h3 className="text-sm font-medium text-gray-900 line-clamp-2">{task.title}</h3>
-        <div className="relative">
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              setShowMenu(!showMenu)
-            }}
-            className="text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 p-1"
-          >
-            <MoreHorizontal className="w-4 h-4" />
-          </button>
-          
-          {showMenu && (
-            <div className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setShowMenu(false)
-                  onEdit?.(task)
-                }}
-                className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg"
-              >
-                Edit
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setShowMenu(false)
-                  onDelete?.(task)
-                }}
-                className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-b-lg flex items-center"
-              >
-                <Trash2 className="w-3 h-3 mr-1" />
-                Delete
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {task.description && (
-        <p className="text-xs text-gray-600 mb-3 line-clamp-2">{task.description}</p>
-      )}
-
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${priorityColors[task.priority]}`}>
-            {task.priority}
-          </span>
-          {task.due_date && (
-            <div className="flex items-center text-gray-500 text-xs">
-              <Calendar className="w-3 h-3 mr-1" />
-              {new Date(task.due_date).toLocaleDateString()}
-            </div>
-          )}
-        </div>
-
-        {task.assignee && (
-          <div className="flex items-center">
-            {task.assignee.avatar_url ? (
-              <img
-                src={task.assignee.avatar_url}
-                alt={task.assignee.name}
-                className="w-6 h-6 rounded-full"
-              />
-            ) : (
-              <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
-                <span className="text-xs font-medium text-white">
-                  {task.assignee.name.charAt(0)}
-                </span>
+      {/* Drag handle - separate from the menu */}
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute inset-0 cursor-grab active:cursor-grabbing z-0"
+        style={{ pointerEvents: showMenu ? 'none' : 'auto' }}
+      />
+      
+      <div className="relative z-10">
+        <div className="flex justify-between items-start mb-2">
+          <h3 className="text-sm font-medium text-gray-900 line-clamp-2 pointer-events-none">
+            {task.title}
+          </h3>
+          <div className="relative pointer-events-auto">
+            <button
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setShowMenu(!showMenu)
+              }}
+              className="text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-gray-100 transition-colors"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+            
+            {showMenu && (
+              <div className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                <button
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setShowMenu(false)
+                    onEdit?.(task)
+                  }}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setShowMenu(false)
+                    onDelete?.(task)
+                  }}
+                  className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-b-lg flex items-center"
+                >
+                  <Trash2 className="w-3 h-3 mr-1" />
+                  Delete
+                </button>
               </div>
             )}
           </div>
+        </div>
+
+        {task.description && (
+          <p className="text-xs text-gray-600 mb-3 line-clamp-2 pointer-events-none">
+            {task.description}
+          </p>
         )}
+
+        <div className="flex items-center justify-between pointer-events-none">
+          <div className="flex items-center space-x-2">
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${priorityColors[task.priority]}`}>
+              {task.priority}
+            </span>
+            {task.due_date && (
+              <div className="flex items-center text-gray-500 text-xs">
+                <Calendar className="w-3 h-3 mr-1" />
+                {new Date(task.due_date).toLocaleDateString()}
+              </div>
+            )}
+          </div>
+
+          {task.assignee && (
+            <div className="flex items-center">
+              {task.assignee.avatar_url ? (
+                <img
+                  src={task.assignee.avatar_url}
+                  alt={task.assignee.name}
+                  className="w-6 h-6 rounded-full"
+                />
+              ) : (
+                <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                  <span className="text-xs font-medium text-white">
+                    {task.assignee.name.charAt(0)}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
