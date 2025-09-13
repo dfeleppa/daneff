@@ -14,7 +14,8 @@ import {
   Trash2,
   Edit3,
   FolderOpen,
-  Activity
+  Activity,
+  RefreshCw
 } from 'lucide-react'
 import { getUserWorkspaces } from '@/lib/api/users'
 import { getProjects, createProject, updateProject, deleteProject } from '@/lib/api/projects'
@@ -52,12 +53,27 @@ export default function ProjectsPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [createLoading, setCreateLoading] = useState(false)
+  const [updateLoading, setUpdateLoading] = useState(false)
   const [newProject, setNewProject] = useState({
     name: '',
     description: '',
     color: '#3b82f6',
     status: 'active',
   })
+
+  // Clear messages after 5 seconds
+  useEffect(() => {
+    if (error || success) {
+      const timer = setTimeout(() => {
+        setError(null)
+        setSuccess(null)
+      }, 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [error, success])
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -113,6 +129,8 @@ export default function ProjectsPage() {
     if (!session?.user?.id || !workspaces[0]) return
 
     try {
+      setError(null)
+      setCreateLoading(true)
       const { project } = await createProject({
         name: newProject.name,
         description: newProject.description || null,
@@ -131,9 +149,13 @@ export default function ProjectsPage() {
           color: '#3b82f6',
           status: 'active',
         })
+        setSuccess('Project created successfully!')
       }
     } catch (error) {
       console.error('Error creating project:', error)
+      setError('Failed to create project. Please try again.')
+    } finally {
+      setCreateLoading(false)
     }
   }
 
@@ -142,6 +164,8 @@ export default function ProjectsPage() {
     if (!editingProject) return
 
     try {
+      setError(null)
+      setUpdateLoading(true)
       const { project } = await updateProject(editingProject.id, {
         name: editingProject.name,
         description: editingProject.description,
@@ -152,9 +176,13 @@ export default function ProjectsPage() {
       if (project) {
         setProjects(projects.map(p => p.id === project.id ? project : p))
         setEditingProject(null)
+        setSuccess('Project updated successfully!')
       }
     } catch (error) {
       console.error('Error updating project:', error)
+      setError('Failed to update project. Please try again.')
+    } finally {
+      setUpdateLoading(false)
     }
   }
 
@@ -164,13 +192,16 @@ export default function ProjectsPage() {
     }
 
     try {
+      setError(null)
       const { success } = await deleteProject(projectId)
 
       if (success) {
         setProjects(projects.filter(p => p.id !== projectId))
+        setSuccess('Project deleted successfully!')
       }
     } catch (error) {
       console.error('Error deleting project:', error)
+      setError('Failed to delete project. Please try again.')
     }
   }
 
@@ -218,18 +249,81 @@ export default function ProjectsPage() {
               <h1 className="text-2xl font-bold text-gray-900">Projects</h1>
               <p className="text-gray-600">Manage your team's projects and workflows</p>
             </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              New Project
-            </button>
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Project
+              </button>
+              <button
+                onClick={loadProjects}
+                disabled={loading}
+                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 flex items-center disabled:opacity-50"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Error and Success Messages */}
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-800">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-green-800">{success}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Project Stats */}
+        {projects.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="text-sm font-medium text-gray-500">Total Projects</div>
+              <div className="text-2xl font-bold text-gray-900">{projects.length}</div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="text-sm font-medium text-gray-500">Active</div>
+              <div className="text-2xl font-bold text-green-600">{projects.filter(p => p.status === 'active').length}</div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="text-sm font-medium text-gray-500">Completed</div>
+              <div className="text-2xl font-bold text-blue-600">{projects.filter(p => p.status === 'completed').length}</div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="text-sm font-medium text-gray-500">On Hold</div>
+              <div className="text-2xl font-bold text-yellow-600">{projects.filter(p => p.status === 'on_hold').length}</div>
+            </div>
+          </div>
+        )}
+
         {/* Filters */}
         <div className="bg-white rounded-lg shadow mb-6 p-4">
           <div className="flex flex-col sm:flex-row gap-4">
@@ -253,9 +347,9 @@ export default function ProjectsPage() {
               >
                 <option value="all">All Status</option>
                 <option value="active">Active</option>
+                <option value="on_hold">On Hold</option>
                 <option value="completed">Completed</option>
-                <option value="paused">Paused</option>
-                <option value="planning">Planning</option>
+                <option value="archived">Archived</option>
               </select>
             </div>
           </div>
@@ -430,10 +524,10 @@ export default function ProjectsPage() {
                   onChange={(e) => setNewProject({ ...newProject, status: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="planning">Planning</option>
                   <option value="active">Active</option>
-                  <option value="paused">Paused</option>
+                  <option value="on_hold">On Hold</option>
                   <option value="completed">Completed</option>
+                  <option value="archived">Archived</option>
                 </select>
               </div>
               
@@ -447,9 +541,16 @@ export default function ProjectsPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  disabled={createLoading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                 >
-                  Create Project
+                  {createLoading && (
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  )}
+                  {createLoading ? 'Creating...' : 'Create Project'}
                 </button>
               </div>
             </form>
@@ -515,10 +616,10 @@ export default function ProjectsPage() {
                   onChange={(e) => setEditingProject({ ...editingProject, status: e.target.value as 'active' | 'on_hold' | 'completed' | 'archived' })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="planning">Planning</option>
                   <option value="active">Active</option>
-                  <option value="paused">Paused</option>
+                  <option value="on_hold">On Hold</option>
                   <option value="completed">Completed</option>
+                  <option value="archived">Archived</option>
                 </select>
               </div>
               
@@ -532,9 +633,16 @@ export default function ProjectsPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  disabled={updateLoading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                 >
-                  Update Project
+                  {updateLoading && (
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  )}
+                  {updateLoading ? 'Updating...' : 'Update Project'}
                 </button>
               </div>
             </form>
