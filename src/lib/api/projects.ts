@@ -88,6 +88,9 @@ export async function getProjects(workspaceId: string) {
 
 // Create a new project
 export async function createProject(projectData: Omit<Project, 'id' | 'created_at' | 'updated_at'>) {
+  console.log('Creating project with data:', projectData)
+  console.log('Supabase client status:', !!supabase)
+  
   const { data, error } = await supabase
     .from('projects')
     .insert(projectData)
@@ -96,6 +99,12 @@ export async function createProject(projectData: Omit<Project, 'id' | 'created_a
 
   if (error) {
     console.error('Error creating project:', error)
+    console.error('Error details:', {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code
+    })
     return { project: null, error }
   }
 
