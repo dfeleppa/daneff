@@ -29,6 +29,8 @@ interface Task {
   project_id: string
   assignee_id: string | null
   reporter_id: string
+  parent_task_id?: string | null
+  completion_percentage?: number
   created_at: string
   updated_at: string
   assignee?: {
@@ -42,6 +44,7 @@ interface Task {
     color: string
     order_index: number
   }
+  sub_tasks?: Task[]
 }
 
 // Get all projects for a workspace
@@ -189,12 +192,12 @@ export async function deleteProject(projectId: string) {
   return { success: true, error: null }
 }
 
-// Get project tasks
+// Get project tasks with sub-tasks
 export async function getProjectTasks(projectId: string) {
   console.log('Fetching tasks for project:', projectId)
   
   try {
-    // Get tasks without foreign key joins since we removed those constraints
+    // Get all tasks for the project
     const { data: tasksData, error: tasksError } = await supabase
       .from('tasks')
       .select('*')
@@ -203,12 +206,6 @@ export async function getProjectTasks(projectId: string) {
 
     if (tasksError) {
       console.error('Error fetching tasks:', tasksError)
-      console.error('Error details:', {
-        message: tasksError.message,
-        details: tasksError.details,
-        hint: tasksError.hint,
-        code: tasksError.code
-      })
       return { tasks: [], error: tasksError }
     }
 
@@ -223,22 +220,45 @@ export async function getProjectTasks(projectId: string) {
       return { tasks: [], error: statusesError }
     }
 
-    // Combine tasks with their status information
-    const tasks = (tasksData || []).map(task => {
-      const status = statusesData?.find(s => s.id === task.status_id)
-      return {
-        ...task,
+    // Create status lookup
+    const statusLookup = new Map(statusesData?.map(s => [s.id, s]) || [])
+
+    // Organize tasks into parent-child relationships
+    const taskMap = new Map()
+    const rootTasks: Task[] = []
+
+    // First, create all task objects
+    for (const taskData of tasksData || []) {
+      const status = statusLookup.get(taskData.status_id)
+      const task: Task = {
+        ...taskData,
         status: status ? {
           id: status.id,
           name: status.name,
           color: status.color,
           order_index: status.order_index
-        } : null
+        } : null,
+        sub_tasks: []
+      }
+      taskMap.set(task.id, task)
+    }
+
+    // Then, organize into parent-child relationships
+    taskMap.forEach((task) => {
+      if (task.parent_task_id) {
+        // This is a sub-task
+        const parent = taskMap.get(task.parent_task_id)
+        if (parent) {
+          parent.sub_tasks!.push(task)
+        }
+      } else {
+        // This is a root task
+        rootTasks.push(task)
       }
     })
 
-    console.log('✅ Tasks fetched successfully:', tasks.length, 'tasks')
-    return { tasks, error: null }
+    console.log('✅ Tasks fetched successfully:', rootTasks.length, 'root tasks')
+    return { tasks: rootTasks, error: null }
   } catch (error: any) {
     console.error('Exception in getProjectTasks:', error)
     return { tasks: [], error }
@@ -321,4 +341,125 @@ export async function deleteTask(taskId: string) {
   }
 
   return { success: true, error: null }
+}
+
+// Create a sub-task
+export async function createSubTask(parentTaskId: string, subTaskData: {
+  title: string
+  description?: string
+  priority?: 'low' | 'medium' | 'high' | 'urgent'
+  assignee_id: string
+  reporter_id: string
+  project_id: string
+  status_id: string
+}) {
+  const taskData = {
+    ...subTaskData,
+    parent_task_id: parentTaskId,
+    priority: subTaskData.priority || 'medium',
+    description: subTaskData.description || null
+  }
+
+  const { data, error } = await supabase
+    .from('tasks')
+    .insert(taskData)
+    .select('*')
+    .single()
+
+  if (error) {
+    console.error('Error creating sub-task:', error)
+    return { task: null, error }
+  }
+
+  // Update parent task completion percentage
+  await updateParentTaskCompletion(parentTaskId)
+
+  return { task: data, error: null }
+}
+
+// Mark task as complete (move to completed status)
+export async function markTaskComplete(taskId: string, projectId: string) {
+  try {
+    // Find the "Done" or "Completed" status for this project
+    const { data: statuses } = await supabase
+      .from('task_statuses')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('order_index', { ascending: false })
+
+    const completedStatus = statuses?.find(s => 
+      s.name.toLowerCase().includes('done') || 
+      s.name.toLowerCase().includes('complete')
+    ) || statuses?.[statuses.length - 1] // Fallback to last status
+
+    if (!completedStatus) {
+      return { success: false, error: new Error('No completion status found') }
+    }
+
+    // Update the task status
+    const { data, error } = await supabase
+      .from('tasks')
+      .update({ 
+        status_id: completedStatus.id,
+        completion_percentage: 100
+      })
+      .eq('id', taskId)
+      .select('*')
+      .single()
+
+    if (error) {
+      console.error('Error marking task complete:', error)
+      return { success: false, error }
+    }
+
+    // If this task has a parent, update the parent's completion
+    if (data.parent_task_id) {
+      await updateParentTaskCompletion(data.parent_task_id)
+    }
+
+    return { success: true, task: data, error: null }
+  } catch (error) {
+    console.error('Exception in markTaskComplete:', error)
+    return { success: false, error }
+  }
+}
+
+// Update parent task completion percentage based on sub-tasks
+async function updateParentTaskCompletion(parentTaskId: string) {
+  try {
+    // Get all sub-tasks for this parent
+    const { data: subTasks } = await supabase
+      .from('tasks')
+      .select('status_id, project_id')
+      .eq('parent_task_id', parentTaskId)
+
+    if (!subTasks || subTasks.length === 0) return
+
+    // Get project statuses to identify completed ones
+    const { data: statuses } = await supabase
+      .from('task_statuses')
+      .select('*')
+      .eq('project_id', subTasks[0].project_id)
+
+    const completedStatusIds = statuses?.filter(s => 
+      s.name.toLowerCase().includes('done') || 
+      s.name.toLowerCase().includes('complete')
+    ).map(s => s.id) || []
+
+    // Calculate completion percentage
+    const completedCount = subTasks.filter(task => 
+      completedStatusIds.includes(task.status_id)
+    ).length
+    
+    const completionPercentage = Math.round((completedCount / subTasks.length) * 100)
+
+    // Update parent task
+    await supabase
+      .from('tasks')
+      .update({ completion_percentage: completionPercentage })
+      .eq('id', parentTaskId)
+
+  } catch (error) {
+    console.error('Error updating parent task completion:', error)
+  }
 }

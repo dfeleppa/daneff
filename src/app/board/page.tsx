@@ -25,9 +25,9 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Calendar, MoreHorizontal, Plus, ArrowLeft, Trash2 } from 'lucide-react'
+import { Calendar, MoreHorizontal, Plus, ArrowLeft, Trash2, Check, Users } from 'lucide-react'
 import { getUserWorkspaces } from '@/lib/api/users'
-import { getProjects, getProjectTasks, getTaskStatuses, updateTask, createTask, deleteTask } from '@/lib/api/projects'
+import { getProjects, getProjectTasks, getTaskStatuses, updateTask, createTask, deleteTask, markTaskComplete, createSubTask } from '@/lib/api/projects'
 
 interface Task {
   id: string
@@ -37,6 +37,8 @@ interface Task {
   priority: 'low' | 'medium' | 'high' | 'urgent'
   due_date: string | null
   created_at: string
+  parent_task_id?: string | null
+  completion_percentage?: number
   assignee?: {
     id: string
     name: string
@@ -53,6 +55,7 @@ interface Task {
     color: string
     order_index: number
   }
+  sub_tasks?: Task[]
 }
 
 interface TaskStatus {
@@ -77,9 +80,11 @@ interface TaskCardProps {
   task: Task
   onEdit?: (task: Task) => void
   onDelete?: (task: Task) => void
+  onComplete?: (task: Task) => void
+  onAddSubTask?: (task: Task) => void
 }
 
-function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
+function TaskCard({ task, onEdit, onDelete, onComplete, onAddSubTask }: TaskCardProps) {
   const [showMenu, setShowMenu] = useState(false)
   
   const {
@@ -103,6 +108,9 @@ function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
     urgent: 'bg-red-100 text-red-800',
   }
 
+  const isCompleted = task.status?.name.toLowerCase().includes('done') || 
+                     task.status?.name.toLowerCase().includes('complete')
+
   // Close menu when clicking outside
   useEffect(() => {
     if (showMenu) {
@@ -116,23 +124,67 @@ function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
     <div
       ref={setNodeRef}
       style={style}
-      className={`bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-3 hover:shadow-md transition-shadow group relative ${
+      className={`bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-3 hover:shadow-md transition-all group relative ${
         isDragging ? 'opacity-50' : ''
-      }`}
+      } ${isCompleted ? 'bg-green-50 border-green-200' : ''}`}
     >
-      {/* Drag handle - separate from the menu */}
+      {/* Drag handle - separate from the menu and hover actions */}
       <div
         {...attributes}
         {...listeners}
         className="absolute inset-0 cursor-grab active:cursor-grabbing z-0"
         style={{ pointerEvents: showMenu ? 'none' : 'auto' }}
       />
+
+      {/* Hover Actions - Left Side */}
+      <div className="absolute left-2 top-1/2 transform -translate-y-1/2 flex flex-col space-y-1 opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-auto">
+        {!isCompleted && (
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              onComplete?.(task)
+            }}
+            className="p-1 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors shadow-md"
+            title="Mark as complete"
+          >
+            <Check className="w-3 h-3" />
+          </button>
+        )}
+        <button
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            onAddSubTask?.(task)
+          }}
+          className="p-1 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors shadow-md"
+          title="Add sub-task"
+        >
+          <Plus className="w-3 h-3" />
+        </button>
+      </div>
       
       <div className="relative z-10">
         <div className="flex justify-between items-start mb-2">
-          <h3 className="text-sm font-medium text-gray-900 line-clamp-2 pointer-events-none">
-            {task.title}
-          </h3>
+          <div className="flex-1 mr-2">
+            <h3 className={`text-sm font-medium line-clamp-2 pointer-events-none ${
+              isCompleted ? 'text-green-800 line-through' : 'text-gray-900'
+            }`}>
+              {task.title}
+            </h3>
+            {/* Sub-tasks indicator */}
+            {task.sub_tasks && task.sub_tasks.length > 0 && (
+              <div className="flex items-center mt-1 text-xs text-gray-500">
+                <Users className="w-3 h-3 mr-1" />
+                {task.sub_tasks.length} sub-task{task.sub_tasks.length !== 1 ? 's' : ''}
+                {task.completion_percentage !== undefined && (
+                  <span className="ml-1 text-blue-600 font-medium">
+                    ({task.completion_percentage}%)
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
           <div className="relative pointer-events-auto">
             <button
               onClick={(e) => {
@@ -223,9 +275,11 @@ interface ColumnProps {
   onAddTask: (statusId: string) => void
   onEditTask: (task: Task) => void
   onDeleteTask: (task: Task) => void
+  onCompleteTask: (task: Task) => void
+  onAddSubTask: (task: Task) => void
 }
 
-function Column({ status, tasks, onAddTask, onEditTask, onDeleteTask }: ColumnProps) {
+function Column({ status, tasks, onAddTask, onEditTask, onDeleteTask, onCompleteTask, onAddSubTask }: ColumnProps) {
   const {
     setNodeRef,
     isOver,
@@ -269,6 +323,8 @@ function Column({ status, tasks, onAddTask, onEditTask, onDeleteTask }: ColumnPr
                 task={task} 
                 onEdit={onEditTask}
                 onDelete={onDeleteTask}
+                onComplete={onCompleteTask}
+                onAddSubTask={onAddSubTask}
               />
             ))}
           </div>
@@ -290,7 +346,9 @@ function BoardPageContent() {
   const [loading, setLoading] = useState(true)
   const [showNewTaskModal, setShowNewTaskModal] = useState(false)
   const [showEditTaskModal, setShowEditTaskModal] = useState(false)
+  const [showSubTaskModal, setShowSubTaskModal] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [parentTaskForSubTask, setParentTaskForSubTask] = useState<Task | null>(null)
   const [newTaskStatusId, setNewTaskStatusId] = useState<string | null>(null)
   const [taskLoading, setTaskLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -301,6 +359,11 @@ function BoardPageContent() {
     description: '',
     priority: 'medium' as 'low' | 'medium' | 'high' | 'urgent',
     due_date: '',
+  })
+  const [newSubTask, setNewSubTask] = useState({
+    title: '',
+    description: '',
+    priority: 'medium' as 'low' | 'medium' | 'high' | 'urgent',
   })
 
   const sensors = useSensors(
@@ -502,6 +565,31 @@ function BoardPageContent() {
     }
   }
 
+  const handleCompleteTask = async (task: Task) => {
+    if (!selectedProject) return
+
+    try {
+      setError(null)
+      const { success, task: updatedTask } = await markTaskComplete(task.id, selectedProject.id)
+
+      if (success && updatedTask) {
+        // Refresh tasks to get updated data including parent task completion percentages
+        loadBoardData()
+        setSuccess('Task marked as complete!')
+      } else {
+        setError('Failed to mark task as complete. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error completing task:', error)
+      setError('Failed to mark task as complete. Please try again.')
+    }
+  }
+
+  const handleAddSubTask = (parentTask: Task) => {
+    setParentTaskForSubTask(parentTask)
+    setShowSubTaskModal(true)
+  }
+
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedProject || !newTaskStatusId || !session?.user?.id) return
@@ -575,6 +663,50 @@ function BoardPageContent() {
     } catch (error) {
       console.error('Error updating task:', error)
       setError('Failed to update task. Please try again.')
+    } finally {
+      setTaskLoading(false)
+    }
+  }
+
+  const handleCreateSubTask = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedProject || !parentTaskForSubTask || !session?.user?.id) return
+
+    try {
+      setTaskLoading(true)
+      setError(null)
+
+      // Use the same status as the parent task initially
+      const { task, error: createError } = await createSubTask(parentTaskForSubTask.id, {
+        title: newSubTask.title,
+        description: newSubTask.description || '',
+        priority: newSubTask.priority,
+        assignee_id: session.user.id,
+        reporter_id: session.user.id,
+        project_id: selectedProject.id,
+        status_id: parentTaskForSubTask.status_id,
+      })
+
+      if (createError) {
+        setError('Failed to create sub-task. Please try again.')
+        return
+      }
+
+      if (task) {
+        // Refresh tasks to get updated parent-child relationships
+        loadBoardData()
+        setShowSubTaskModal(false)
+        setNewSubTask({
+          title: '',
+          description: '',
+          priority: 'medium',
+        })
+        setParentTaskForSubTask(null)
+        setSuccess('Sub-task created successfully!')
+      }
+    } catch (error) {
+      console.error('Error creating sub-task:', error)
+      setError('Failed to create sub-task. Please try again.')
     } finally {
       setTaskLoading(false)
     }
@@ -740,6 +872,8 @@ function BoardPageContent() {
                 onAddTask={handleAddTask}
                 onEditTask={handleEditTask}
                 onDeleteTask={handleDeleteTask}
+                onCompleteTask={handleCompleteTask}
+                onAddSubTask={handleAddSubTask}
               />
             ))}
           </div>
@@ -935,6 +1069,91 @@ function BoardPageContent() {
                     </svg>
                   )}
                   {taskLoading ? 'Updating...' : 'Update Task'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create Sub-Task Modal */}
+      {showSubTaskModal && parentTaskForSubTask && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              Create Sub-task for "{parentTaskForSubTask.title}"
+            </h2>
+            <form onSubmit={handleCreateSubTask}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Sub-task Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newSubTask.title}
+                  onChange={(e) => setNewSubTask({ ...newSubTask, title: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter sub-task title"
+                />
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={newSubTask.description}
+                  onChange={(e) => setNewSubTask({ ...newSubTask, description: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-20"
+                  placeholder="Enter sub-task description"
+                />
+              </div>
+              
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Priority
+                </label>
+                <select
+                  value={newSubTask.priority}
+                  onChange={(e) => setNewSubTask({ ...newSubTask, priority: e.target.value as 'low' | 'medium' | 'high' | 'urgent' })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+              
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSubTaskModal(false)
+                    setParentTaskForSubTask(null)
+                    setNewSubTask({
+                      title: '',
+                      description: '',
+                      priority: 'medium',
+                    })
+                  }}
+                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={taskLoading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                >
+                  {taskLoading && (
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  )}
+                  {taskLoading ? 'Creating...' : 'Create Sub-task'}
                 </button>
               </div>
             </form>
