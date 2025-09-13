@@ -15,7 +15,8 @@ import {
   Edit3,
   FolderOpen,
   Activity,
-  RefreshCw
+  RefreshCw,
+  BarChart3
 } from 'lucide-react'
 import { getUserWorkspaces, createSupabaseUser } from '@/lib/api/users'
 import { getProjects, createProject, updateProject, deleteProject } from '@/lib/api/projects'
@@ -583,6 +584,13 @@ export default function ProjectsPage() {
                         title="View board"
                       >
                         <Activity className="h-4 w-4" />
+                      </Link>
+                      <Link
+                        href={`/gantt?project=${project.id}`}
+                        className="text-gray-400 hover:text-purple-600 p-1"
+                        title="View gantt chart"
+                      >
+                        <BarChart3 className="h-4 w-4" />
                       </Link>
                       <button
                         onClick={() => handleDeleteProject(project.id)}

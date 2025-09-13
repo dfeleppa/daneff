@@ -185,6 +185,9 @@ export default function Dashboard() {
                 <Link href="/board" className="text-gray-500 hover:text-blue-600 px-3 py-2 text-sm font-medium">
                   Board
                 </Link>
+                <Link href="/gantt" className="text-gray-500 hover:text-blue-600 px-3 py-2 text-sm font-medium">
+                  Gantt
+                </Link>
               </nav>
             </div>
             
