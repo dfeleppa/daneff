@@ -135,34 +135,6 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onAddSubTask }: TaskCard
         className="absolute inset-0 cursor-grab active:cursor-grabbing z-0"
         style={{ pointerEvents: showMenu ? 'none' : 'auto' }}
       />
-
-      {/* Hover Actions - Left Side */}
-      <div className="absolute left-2 top-1/2 transform -translate-y-1/2 flex flex-col space-y-1 opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-auto">
-        {!isCompleted && (
-          <button
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              onComplete?.(task)
-            }}
-            className="p-1 bg-green-600 text-white rounded-full hover:bg-green-700 transition-colors shadow-md"
-            title="Mark as complete"
-          >
-            <Check className="w-3 h-3" />
-          </button>
-        )}
-        <button
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            onAddSubTask?.(task)
-          }}
-          className="p-1 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors shadow-md"
-          title="Add sub-task"
-        >
-          <Plus className="w-3 h-3" />
-        </button>
-      </div>
       
       <div className="relative z-10">
         <div className="flex justify-between items-start mb-2">
@@ -185,45 +157,73 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onAddSubTask }: TaskCard
               </div>
             )}
           </div>
-          <div className="relative pointer-events-auto">
+          
+          {/* Action buttons - inline with 3-dots */}
+          <div className="flex items-center space-x-1 pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity">
+            {!isCompleted && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  onComplete?.(task)
+                }}
+                className="p-1 text-green-600 hover:text-green-700 hover:bg-green-50 rounded transition-colors"
+                title="Mark as complete"
+              >
+                <Check className="w-4 h-4" />
+              </button>
+            )}
             <button
               onClick={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
-                setShowMenu(!showMenu)
+                onAddSubTask?.(task)
               }}
-              className="text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-gray-100 transition-colors"
+              className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+              title="Add sub-task"
             >
-              <MoreHorizontal className="w-4 h-4" />
+              <Plus className="w-4 h-4" />
             </button>
-            
-            {showMenu && (
-              <div className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                <button
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setShowMenu(false)
-                    onEdit?.(task)
-                  }}
-                  className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setShowMenu(false)
-                    onDelete?.(task)
-                  }}
-                  className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-b-lg flex items-center"
-                >
-                  <Trash2 className="w-3 h-3 mr-1" />
-                  Delete
-                </button>
-              </div>
-            )}
+            <div className="relative">
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setShowMenu(!showMenu)
+                }}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 transition-colors"
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+              
+              {showMenu && (
+                <div className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setShowMenu(false)
+                      onEdit?.(task)
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setShowMenu(false)
+                      onDelete?.(task)
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-b-lg flex items-center"
+                  >
+                    <Trash2 className="w-3 h-3 mr-1" />
+                    Delete
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
