@@ -126,12 +126,24 @@ export default function ProjectsPage() {
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!session?.user?.id || !workspaces[0]) return
+    if (!session?.user?.id) {
+      setError('Please sign in to create projects')
+      return
+    }
+
+    if (!workspaces || workspaces.length === 0) {
+      setError('No workspace found. Please sign out and back in to create your workspace.')
+      return
+    }
 
     try {
       setError(null)
       setCreateLoading(true)
-      const { project } = await createProject({
+      
+      console.log('Creating project with workspace:', workspaces[0])
+      console.log('User ID:', session.user.id)
+      
+      const { project, error: createError } = await createProject({
         name: newProject.name,
         description: newProject.description || null,
         color: newProject.color,
@@ -139,6 +151,12 @@ export default function ProjectsPage() {
         workspace_id: workspaces[0].id,
         owner_id: session.user.id,
       })
+
+      if (createError) {
+        console.error('Create project error:', createError)
+        setError(`Failed to create project: ${createError.message}`)
+        return
+      }
 
       if (project) {
         setProjects([project, ...projects])
@@ -150,10 +168,13 @@ export default function ProjectsPage() {
           status: 'active',
         })
         setSuccess('Project created successfully!')
+        
+        // Reload projects to ensure consistency
+        setTimeout(() => loadProjects(), 1000)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating project:', error)
-      setError('Failed to create project. Please try again.')
+      setError(`Failed to create project: ${error.message || 'Unknown error'}`)
     } finally {
       setCreateLoading(false)
     }

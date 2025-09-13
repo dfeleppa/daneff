@@ -91,52 +91,61 @@ export async function createProject(projectData: Omit<Project, 'id' | 'created_a
   console.log('Creating project with data:', projectData)
   console.log('Supabase client status:', !!supabase)
   
-  const { data, error } = await supabase
-    .from('projects')
-    .insert(projectData)
-    .select()
-    .single()
-
-  if (error) {
-    console.error('Error creating project:', error)
-    console.error('Error details:', {
-      message: error.message,
-      details: error.details,
-      hint: error.hint,
-      code: error.code
-    })
+  // Validate required fields
+  if (!projectData.name || !projectData.workspace_id || !projectData.owner_id) {
+    const error = new Error('Missing required fields: name, workspace_id, or owner_id')
+    console.error('Validation error:', error)
     return { project: null, error }
   }
 
-  // Add creator as admin
-  if (projectData.owner_id) {
-    await supabase
-      .from('project_members')
+  try {
+    const { data, error } = await supabase
+      .from('projects')
       .insert({
-        project_id: data.id,
-        user_id: projectData.owner_id,
-        role: 'admin',
+        name: projectData.name,
+        description: projectData.description,
+        color: projectData.color || '#3b82f6',
+        status: projectData.status || 'active',
+        workspace_id: projectData.workspace_id,
+        owner_id: projectData.owner_id,
       })
+      .select()
+      .single()
 
-    // Create default task statuses
-    const defaultStatuses = [
-      { name: 'To Do', color: '#6b7280', order_index: 0 },
-      { name: 'In Progress', color: '#3b82f6', order_index: 1 },
-      { name: 'Review', color: '#f59e0b', order_index: 2 },
-      { name: 'Done', color: '#10b981', order_index: 3 },
-    ]
+    if (error) {
+      console.error('Error creating project:', error)
+      console.error('Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
+      return { project: null, error }
+    }
 
-    await supabase
-      .from('task_statuses')
-      .insert(
-        defaultStatuses.map(status => ({
-          ...status,
+    console.log('✅ Project created successfully:', data)
+
+    // Add creator as admin
+    if (projectData.owner_id) {
+      const { error: memberError } = await supabase
+        .from('project_members')
+        .insert({
           project_id: data.id,
-        }))
-      )
-  }
+          user_id: projectData.owner_id,
+          role: 'admin',
+        })
 
-  return { project: data, error: null }
+      if (memberError) {
+        console.warn('Warning: Failed to add user as project admin:', memberError)
+        // Don't fail the entire operation for this
+      }
+    }
+
+    return { project: data, error: null }
+  } catch (error: any) {
+    console.error('Exception in createProject:', error)
+    return { project: null, error }
+  }
 }
 
 // Update a project
