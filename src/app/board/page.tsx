@@ -12,6 +12,9 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
+  useDroppable,
+  DragOverlay,
+  DragStartEvent,
 } from '@dnd-kit/core'
 import {
   SortableContext,
@@ -196,9 +199,21 @@ interface ColumnProps {
 }
 
 function Column({ status, tasks, onAddTask, onEditTask, onDeleteTask }: ColumnProps) {
+  const {
+    setNodeRef,
+    isOver,
+  } = useDroppable({
+    id: `column-${status.id}`,
+  })
+
   return (
     <div className="flex-shrink-0 w-72">
-      <div className="bg-gray-50 rounded-lg p-4">
+      <div 
+        ref={setNodeRef}
+        className={`bg-gray-50 rounded-lg p-4 transition-colors ${
+          isOver ? 'bg-blue-50 ring-2 ring-blue-200' : ''
+        }`}
+      >
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
             <div
@@ -253,6 +268,7 @@ function BoardPageContent() {
   const [taskLoading, setTaskLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
@@ -345,35 +361,86 @@ function BoardPageContent() {
     }
   }
 
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event
+    const task = tasks.find(task => task.id === active.id)
+    setActiveTask(task || null)
+  }
+
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
+    
+    setActiveTask(null)
 
-    if (!over) return
+    if (!over || !active) return
 
     const activeTask = tasks.find(task => task.id === active.id)
     if (!activeTask) return
 
-    // Find the target status based on the drop zone
-    const targetStatusId = over.id as string
+    // Extract status ID from the column drop zone
+    const overId = over.id as string
+    let targetStatusId: string
+
+    if (overId.startsWith('column-')) {
+      // Dropped on a column
+      targetStatusId = overId.replace('column-', '')
+    } else {
+      // Dropped on another task, find which column that task is in
+      const overTask = tasks.find(task => task.id === overId)
+      if (overTask) {
+        targetStatusId = overTask.status_id
+      } else {
+        return
+      }
+    }
+
     const targetStatus = taskStatuses.find(status => status.id === targetStatusId)
 
     if (!targetStatus || activeTask.status_id === targetStatusId) return
 
+    console.log('Moving task:', {
+      taskId: activeTask.id,
+      taskTitle: activeTask.title,
+      fromStatus: activeTask.status_id,
+      toStatus: targetStatusId,
+      targetStatusName: targetStatus.name
+    })
+
+    // Optimistically update the UI
+    setTasks(prevTasks => prevTasks.map(task => 
+      task.id === activeTask.id 
+        ? { ...task, status_id: targetStatusId, status: targetStatus }
+        : task
+    ))
+
     // Update task status in database
     try {
-      const { task: updatedTask } = await updateTask(activeTask.id, {
+      const { task: updatedTask, error } = await updateTask(activeTask.id, {
         status_id: targetStatusId
       })
 
-      if (updatedTask) {
-        setTasks(tasks.map(task => 
+      if (error) {
+        console.error('Error updating task status:', error)
+        // Revert optimistic update
+        setTasks(prevTasks => prevTasks.map(task => 
           task.id === activeTask.id 
-            ? { ...task, status_id: targetStatusId, status: targetStatus }
+            ? { ...task, status_id: activeTask.status_id, status: activeTask.status }
             : task
         ))
+        setError('Failed to update task status. Please try again.')
+      } else if (updatedTask) {
+        console.log('Task status updated successfully:', updatedTask)
+        setSuccess(`Task moved to ${targetStatus.name}!`)
       }
     } catch (error) {
       console.error('Error updating task status:', error)
+      // Revert optimistic update
+      setTasks(prevTasks => prevTasks.map(task => 
+        task.id === activeTask.id 
+          ? { ...task, status_id: activeTask.status_id, status: activeTask.status }
+          : task
+      ))
+      setError('Failed to update task status. Please try again.')
     }
   }
 
@@ -631,6 +698,7 @@ function BoardPageContent() {
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
           <div className="flex space-x-6 overflow-x-auto pb-4">
@@ -645,6 +713,25 @@ function BoardPageContent() {
               />
             ))}
           </div>
+          
+          <DragOverlay>
+            {activeTask ? (
+              <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4 cursor-grabbing opacity-90 rotate-3">
+                <h3 className="text-sm font-medium text-gray-900 mb-2">{activeTask.title}</h3>
+                {activeTask.description && (
+                  <p className="text-xs text-gray-600 mb-2">{activeTask.description}</p>
+                )}
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  activeTask.priority === 'low' ? 'bg-gray-100 text-gray-800' :
+                  activeTask.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                  activeTask.priority === 'high' ? 'bg-orange-100 text-orange-800' :
+                  'bg-red-100 text-red-800'
+                }`}>
+                  {activeTask.priority}
+                </span>
+              </div>
+            ) : null}
+          </DragOverlay>
         </DndContext>
       </main>
 
