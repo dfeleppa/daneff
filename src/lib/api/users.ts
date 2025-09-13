@@ -1,8 +1,19 @@
-import { supabase } from '../supabase'
-import { Database } from '../database.types'
+import { createClient } from '@supabase/supabase-js'
 
-type User = Database['public']['Tables']['users']['Row']
-type UserInsert = Database['public']['Tables']['users']['Insert']
+// Create a non-typed client to avoid deployment issues
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// Use flexible interfaces
+interface User {
+  id: string
+  email: string
+  name: string
+  avatar_url: string | null
+  created_at: string
+  updated_at: string
+}
 
 // Sync authenticated user with Supabase users table
 export async function syncUserWithSupabase(authUser: {
@@ -47,7 +58,7 @@ export async function syncUserWithSupabase(authUser: {
     }
 
     // If user doesn't exist, create them
-    const newUser: UserInsert = {
+    const newUser: Omit<User, 'created_at' | 'updated_at'> = {
       id: authUser.id,
       email: authUser.email,
       name: authUser.name,
@@ -185,10 +196,15 @@ export async function getUserWorkspaces(userId: string) {
     return []
   }
 
-  return data.map(item => ({
-    ...item.workspaces,
+  return data?.map((item: any) => ({
+    id: item.workspaces.id,
+    name: item.workspaces.name,
+    slug: item.workspaces.slug,
+    description: item.workspaces.description,
+    owner_id: item.workspaces.owner_id,
+    created_at: item.workspaces.created_at,
     user_role: item.role,
-  }))
+  })) || []
 }
 
 // Get workspace projects
@@ -224,7 +240,7 @@ export async function getWorkspaceProjects(workspaceId: string) {
 
   return data.map(project => ({
     ...project,
-    members: project.project_members.map(pm => ({
+    members: project.project_members.map((pm: any) => ({
       ...pm.users,
       role: pm.role,
     }))

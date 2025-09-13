@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSession } from 'next-auth/react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -14,7 +14,6 @@ import {
   DragEndEvent,
 } from '@dnd-kit/core'
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -23,7 +22,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Calendar, User, Tag, MoreHorizontal, Plus, ArrowLeft } from 'lucide-react'
+import { Calendar, MoreHorizontal, Plus, ArrowLeft } from 'lucide-react'
 import { getUserWorkspaces } from '@/lib/api/users'
 import { getProjects, getProjectTasks, getTaskStatuses, updateTask, createTask } from '@/lib/api/projects'
 
@@ -196,7 +195,7 @@ function Column({ status, tasks, onAddTask }: ColumnProps) {
   )
 }
 
-export default function BoardPage() {
+function BoardPageContent() {
   const { data: session, status } = useSession()
   const searchParams = useSearchParams()
   const projectId = searchParams?.get('project')
@@ -541,5 +540,17 @@ export default function BoardPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function BoardPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    }>
+      <BoardPageContent />
+    </Suspense>
   )
 }
