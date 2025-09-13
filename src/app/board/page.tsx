@@ -289,31 +289,57 @@ function BoardPageContent() {
 
     try {
       setLoading(true)
+      setError(null)
 
       // Get user's workspaces
       const userWorkspaces = await getUserWorkspaces(session.user.id)
       
-      if (userWorkspaces.length > 0) {
-        // Get projects from the first workspace
-        const { projects: workspaceProjects } = await getProjects(userWorkspaces[0].id)
-        setProjects(workspaceProjects)
-
-        // Set selected project
-        let currentProject = workspaceProjects.find(p => p.id === projectId) || workspaceProjects[0]
-        setSelectedProject(currentProject)
-
-        if (currentProject) {
-          // Get task statuses for the project
-          const { statuses } = await getTaskStatuses(currentProject.id)
-          setTaskStatuses(statuses)
-
-          // Get tasks for the project
-          const { tasks: projectTasks } = await getProjectTasks(currentProject.id)
-          setTasks(projectTasks)
-        }
+      if (userWorkspaces.length === 0) {
+        setError('No workspace found. Please create a workspace first.')
+        return
       }
-    } catch (error) {
+
+      // Get projects from the first workspace
+      const { projects: workspaceProjects } = await getProjects(userWorkspaces[0].id)
+      setProjects(workspaceProjects)
+
+      if (workspaceProjects.length === 0) {
+        setError('No projects found. Please create a project first.')
+        return
+      }
+
+      // Set selected project
+      let currentProject = workspaceProjects.find(p => p.id === projectId) || workspaceProjects[0]
+      setSelectedProject(currentProject)
+
+      if (currentProject) {
+        console.log('Loading board data for project:', currentProject.name, currentProject.id)
+        
+        // Get task statuses for the project
+        const { statuses, error: statusError } = await getTaskStatuses(currentProject.id)
+        if (statusError) {
+          setError(`Failed to load task columns: ${statusError.message}`)
+          return
+        }
+        setTaskStatuses(statuses)
+
+        // Get tasks for the project
+        const { tasks: projectTasks, error: tasksError } = await getProjectTasks(currentProject.id)
+        if (tasksError) {
+          setError(`Failed to load tasks: ${tasksError.message}`)
+          return
+        }
+        setTasks(projectTasks)
+        
+        console.log('Board data loaded successfully:', {
+          project: currentProject.name,
+          statuses: statuses.length,
+          tasks: projectTasks.length
+        })
+      }
+    } catch (error: any) {
       console.error('Error loading board data:', error)
+      setError(`Failed to load board: ${error.message || 'Unknown error'}`)
     } finally {
       setLoading(false)
     }

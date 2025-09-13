@@ -191,54 +191,82 @@ export async function deleteProject(projectId: string) {
 
 // Get project tasks
 export async function getProjectTasks(projectId: string) {
-  const { data, error } = await supabase
-    .from('tasks')
-    .select(`
-      *,
-      assignee:users!tasks_assignee_id_fkey (
-        id,
-        name,
-        email,
-        avatar_url
-      ),
-      creator:users!tasks_creator_id_fkey (
-        id,
-        name,
-        email,
-        avatar_url
-      ),
-      status:task_statuses!tasks_status_id_fkey (
-        id,
-        name,
-        color,
-        order_index
-      )
-    `)
-    .eq('project_id', projectId)
-    .order('created_at', { ascending: false })
+  console.log('Fetching tasks for project:', projectId)
+  
+  try {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select(`
+        *,
+        assignee:users!tasks_assignee_id_fkey (
+          id,
+          name,
+          email,
+          avatar_url
+        ),
+        creator:users!tasks_reporter_id_fkey (
+          id,
+          name,
+          email,
+          avatar_url
+        ),
+        status:task_statuses!tasks_status_id_fkey (
+          id,
+          name,
+          color,
+          order_index
+        )
+      `)
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false })
 
-  if (error) {
-    console.error('Error fetching tasks:', error)
+    if (error) {
+      console.error('Error fetching tasks:', error)
+      console.error('Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
+      return { tasks: [], error }
+    }
+
+    console.log('✅ Tasks fetched successfully:', data?.length || 0, 'tasks')
+    return { tasks: data || [], error: null }
+  } catch (error: any) {
+    console.error('Exception in getProjectTasks:', error)
     return { tasks: [], error }
   }
-
-  return { tasks: data, error: null }
 }
 
 // Get task statuses for a project
 export async function getTaskStatuses(projectId: string) {
-  const { data, error } = await supabase
-    .from('task_statuses')
-    .select('*')
-    .eq('project_id', projectId)
-    .order('order_index')
+  console.log('Fetching task statuses for project:', projectId)
+  
+  try {
+    const { data, error } = await supabase
+      .from('task_statuses')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('order_index')
 
-  if (error) {
-    console.error('Error fetching task statuses:', error)
+    if (error) {
+      console.error('Error fetching task statuses:', error)
+      console.error('Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
+      return { statuses: [], error }
+    }
+
+    console.log('✅ Task statuses fetched successfully:', data?.length || 0, 'statuses')
+    return { statuses: data || [], error: null }
+  } catch (error: any) {
+    console.error('Exception in getTaskStatuses:', error)
     return { statuses: [], error }
   }
-
-  return { statuses: data, error: null }
 }
 
 // Create a new task
