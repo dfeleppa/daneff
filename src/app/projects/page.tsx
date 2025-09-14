@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import AppLayout from '@/components/AppLayout'
 import { 
   Plus, 
   Search, 
@@ -384,7 +385,8 @@ export default function ProjectsPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <AppLayout>
+      <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -845,5 +847,6 @@ export default function ProjectsPage() {
         </div>
       )}
     </div>
+    </AppLayout>
   )
 }

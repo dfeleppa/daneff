@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useSession } from 'next-auth/react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import AppLayout from '@/components/AppLayout'
 import { Gantt, Task as GanttTask, ViewMode } from 'gantt-task-react'
 import { format, addDays, startOfDay, endOfDay, isValid, parseISO } from 'date-fns'
 import { Calendar, ArrowLeft, ZoomIn, ZoomOut, BarChart3 } from 'lucide-react'
@@ -243,7 +244,8 @@ function GanttPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <AppLayout>
+      <div className="p-8">
       {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -395,6 +397,7 @@ function GanttPageContent() {
         )}
       </main>
     </div>
+    </AppLayout>
   )
 }
 

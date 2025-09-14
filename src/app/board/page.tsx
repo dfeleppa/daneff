@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { useSession, signOut } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -25,9 +25,10 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Calendar, MoreHorizontal, Plus, ArrowLeft, Trash2, Check, Users, ChevronDown, ChevronRight, Home, Folder, Menu, ChevronLeft, X, Kanban } from 'lucide-react'
+import { Calendar, MoreHorizontal, Plus, ArrowLeft, Trash2, Check, Users, ChevronDown, ChevronRight } from 'lucide-react'
 import { getUserWorkspaces } from '@/lib/api/users'
 import { getProjects, getProjectTasks, getTaskStatuses, updateTask, createTask, deleteTask, markTaskComplete, markTaskIncomplete, createSubTask } from '@/lib/api/projects'
+import AppLayout from '@/components/AppLayout'
 
 interface Task {
   id: string
@@ -567,7 +568,6 @@ function BoardPageContent() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [activeTask, setActiveTask] = useState<Task | null>(null)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
@@ -1051,88 +1051,9 @@ function BoardPageContent() {
   })
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex">
-      {/* Sidebar */}
-      <div className={`fixed left-0 top-0 h-full bg-white/95 backdrop-blur-md border-r border-gray-200/50 transition-all duration-300 z-40 ${sidebarCollapsed ? 'w-16' : 'w-72'}`}>
-        <div className="flex flex-col h-full">
-          {/* Sidebar Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200/50">
-            {!sidebarCollapsed && (
-              <Link href="/" className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                TaskFlow
-              </Link>
-            )}
-            <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              {sidebarCollapsed ? <Menu className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
-            </button>
-          </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2">
-            <Link
-              href="/"
-              className="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all"
-            >
-              <Home className="w-5 h-5" />
-              {!sidebarCollapsed && <span className="font-medium">Dashboard</span>}
-            </Link>
-            <Link
-              href="/projects"
-              className="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all"
-            >
-              <Folder className="w-5 h-5" />
-              {!sidebarCollapsed && <span className="font-medium">Projects</span>}
-            </Link>
-            <Link
-              href="/board"
-              className="flex items-center space-x-3 px-3 py-2 rounded-lg bg-blue-50 text-blue-600 font-medium transition-all"
-            >
-              <Kanban className="w-5 h-5" />
-              {!sidebarCollapsed && <span className="font-medium">Board</span>}
-            </Link>
-            <Link
-              href="/gantt"
-              className="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all"
-            >
-              <Calendar className="w-5 h-5" />
-              {!sidebarCollapsed && <span className="font-medium">Gantt</span>}
-            </Link>
-          </nav>
-
-          {/* User Info */}
-          {!sidebarCollapsed && (
-            <div className="p-4 border-t border-gray-200/50">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                  {session?.user?.name?.[0] || 'U'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900 truncate">
-                    {session?.user?.name}
-                  </div>
-                  <div className="text-xs text-gray-500 truncate">
-                    {session?.user?.email}
-                  </div>
-                </div>
-                <button
-                  onClick={() => signOut()}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-72'}`}>
-        {/* Header */}
-        <header className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 sticky top-0 z-30">
+    <AppLayout>
+      {/* Header */}
+      <header className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <div className="flex items-center">
@@ -1537,8 +1458,7 @@ function BoardPageContent() {
           </div>
         </div>
       )}
-      </div>
-    </div>
+    </AppLayout>
   )
 }
 
