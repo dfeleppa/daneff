@@ -30,7 +30,7 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
   const params = useParams()
   const userMenuRef = useRef<HTMLDivElement>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [projectsExpanded, setProjectsExpanded] = useState(false)
+  const [projectsExpanded, setProjectsExpanded] = useState(true) // Default to expanded when in workspace
   const [workspacesExpanded, setWorkspacesExpanded] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
@@ -102,14 +102,7 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
   // Navigation based on current context
   let navigation: Array<{name: string, href: string, icon: any, current: boolean}>
   
-  if (currentWorkspaceId && currentProjectId) {
-    // Project level - show views
-    navigation = [
-      { name: 'Board', href: `/workspace/${currentWorkspaceId}/project/${currentProjectId}/board`, icon: Kanban, current: pathname?.includes('/board') },
-      { name: 'List', href: `/workspace/${currentWorkspaceId}/project/${currentProjectId}/list`, icon: List, current: pathname?.includes('/list') },
-      { name: 'Gantt', href: `/workspace/${currentWorkspaceId}/project/${currentProjectId}/gantt`, icon: Calendar, current: pathname?.includes('/gantt') },
-    ]
-  } else if (currentWorkspaceId) {
+  if (currentWorkspaceId) {
     // Workspace level - show workspace dashboard
     navigation = [
       { name: 'Dashboard', href: `/workspace/${currentWorkspaceId}`, icon: Home, current: pathname === `/workspace/${currentWorkspaceId}` },
@@ -215,21 +208,62 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
                         <div className="px-3 py-2 text-sm text-gray-500">Loading projects...</div>
                       ) : projects.length > 0 ? (
                         projects.map((project) => (
-                          <Link
-                            key={project.id}
-                            href={`/workspace/${currentWorkspaceId}/project/${project.id}`}
-                            className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all ${
-                              project.id === currentProjectId 
-                                ? 'bg-blue-50 text-blue-600 font-medium'
-                                : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
-                            }`}
-                          >
-                            <div 
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: project.color || '#6b7280' }}
-                            />
-                            <span className="truncate">{project.name}</span>
-                          </Link>
+                          <div key={project.id}>
+                            {/* Project Link */}
+                            <Link
+                              href={`/workspace/${currentWorkspaceId}/project/${project.id}`}
+                              className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all ${
+                                project.id === currentProjectId 
+                                  ? 'bg-blue-50 text-blue-600 font-medium'
+                                  : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+                              }`}
+                            >
+                              <div 
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: project.color || '#6b7280' }}
+                              />
+                              <span className="truncate">{project.name}</span>
+                            </Link>
+                            
+                            {/* Project Views - only show for current project */}
+                            {project.id === currentProjectId && (
+                              <div className="ml-6 mt-1 space-y-1">
+                                <Link
+                                  href={`/workspace/${currentWorkspaceId}/project/${project.id}/board`}
+                                  className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
+                                    pathname?.includes('/board')
+                                      ? 'bg-blue-50 text-blue-600 font-medium'
+                                      : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
+                                  }`}
+                                >
+                                  <Kanban className="w-4 h-4" />
+                                  <span>Board</span>
+                                </Link>
+                                <Link
+                                  href={`/workspace/${currentWorkspaceId}/project/${project.id}/list`}
+                                  className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
+                                    pathname?.includes('/list')
+                                      ? 'bg-blue-50 text-blue-600 font-medium'
+                                      : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
+                                  }`}
+                                >
+                                  <List className="w-4 h-4" />
+                                  <span>List</span>
+                                </Link>
+                                <Link
+                                  href={`/workspace/${currentWorkspaceId}/project/${project.id}/gantt`}
+                                  className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
+                                    pathname?.includes('/gantt')
+                                      ? 'bg-blue-50 text-blue-600 font-medium'
+                                      : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
+                                  }`}
+                                >
+                                  <Calendar className="w-4 h-4" />
+                                  <span>Gantt</span>
+                                </Link>
+                              </div>
+                            )}
+                          </div>
                         ))
                       ) : (
                         <div className="px-3 py-2 text-sm text-gray-500">No projects found</div>
