@@ -71,13 +71,6 @@ export default function ProjectGanttPage() {
     }
   }
 
-  // Redirect to old gantt view with project parameter
-  useEffect(() => {
-    if (project && !loading && !error) {
-      router.push(`/gantt?project=${projectId}`)
-    }
-  }, [project, projectId, loading, error, router])
-
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
@@ -106,5 +99,44 @@ export default function ProjectGanttPage() {
     )
   }
 
-  return null
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <div className="container mx-auto px-6 py-8">
+        <div className="flex items-center gap-4 mb-8">
+          <Link
+            href={`/workspace/${workspaceId}/project/${projectId}`}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Project
+          </Link>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                📊 {project?.name} Gantt
+              </h1>
+              <p className="text-gray-600 mt-2">Gantt chart view for {project?.name}</p>
+            </div>
+          </div>
+
+          <div className="text-center py-16">
+            <div className="text-6xl mb-4">📊</div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Gantt Chart View</h3>
+            <p className="text-gray-600 mb-6">
+              Gantt chart functionality coming soon! For now, you can use the legacy gantt view.
+            </p>
+            <Link
+              href={`/gantt?project=${projectId}`}
+              className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              📊 Open Legacy Gantt
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }

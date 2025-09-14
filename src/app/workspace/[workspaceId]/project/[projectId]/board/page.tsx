@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Kanban, List, BarChart3 } from 'lucide-react'
+import { ArrowLeft, Kanban, List, BarChart3, Plus } from 'lucide-react'
 import { getUserWorkspaces } from '@/lib/api/users'
-import { getProjects } from '@/lib/api/projects'
+import { getProjects, getProjectTasks, getTaskStatuses } from '@/lib/api/projects'
 
 interface Workspace {
   id: string
@@ -17,6 +17,29 @@ interface Project {
   id: string
   name: string
   color: string
+}
+
+interface Task {
+  id: string
+  title: string
+  description: string | null
+  status_id: string
+  priority: 'low' | 'medium' | 'high' | 'urgent'
+  due_date: string | null
+  created_at: string
+  status?: {
+    id: string
+    name: string
+    color: string
+    order_index: number
+  }
+}
+
+interface TaskStatus {
+  id: string
+  name: string
+  color: string
+  order_index: number
 }
 
 export default function ProjectBoardPage() {
