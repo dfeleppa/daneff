@@ -31,7 +31,7 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
   const userMenuRef = useRef<HTMLDivElement>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [projectsExpanded, setProjectsExpanded] = useState(true) // Default to expanded when in workspace
-  const [workspacesExpanded, setWorkspacesExpanded] = useState(false)
+  const [workspacesExpanded, setWorkspacesExpanded] = useState(true) // Always expanded for visibility
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [projects, setProjects] = useState<Project[]>([])
@@ -99,18 +99,10 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
     }
   }
 
-  // Navigation based on current context
-  let navigation: Array<{name: string, href: string, icon: any, current: boolean}>
-  
-  if (currentWorkspaceId) {
-    // Workspace level - show workspace dashboard
-    navigation = [
-      { name: 'Dashboard', href: `/workspace/${currentWorkspaceId}`, icon: Home, current: pathname === `/workspace/${currentWorkspaceId}` },
-    ]
-  } else {
-    // Home level - no navigation items (workspaces section handles this)
-    navigation = []
-  }
+  // Navigation based on current context - CONSISTENT STRUCTURE
+  const navigation: Array<{name: string, href: string, icon: any, current: boolean}> = [
+    { name: 'Dashboard', href: '/dashboard', icon: Home, current: pathname === '/dashboard' },
+  ]
 
   // Get current workspace and project names for display
   const currentWorkspace = workspaces.find(w => w.id === currentWorkspaceId)
@@ -170,165 +162,148 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
               )
             })}
 
-            {/* Projects Section - only show if we're in a workspace */}
-            {currentWorkspaceId && (
-              <div>
-                {/* Projects Header */}
-                <div className={`flex items-center justify-between px-3 py-2 rounded-lg transition-all ${
-                  pathname === `/workspace/${currentWorkspaceId}` 
-                    ? 'bg-blue-50 text-blue-600 font-medium' 
-                    : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
-                }`}>
-                  <Link 
-                    href={`/workspace/${currentWorkspaceId}`} 
-                    className="flex items-center space-x-3 flex-1"
-                  >
-                    <Folder className="w-5 h-5" />
-                    {!sidebarCollapsed && <span className="font-medium">Projects</span>}
-                  </Link>
-                  {!sidebarCollapsed && (
-                    <button
-                      onClick={() => setProjectsExpanded(!projectsExpanded)}
-                      className="p-1 hover:bg-gray-200 rounded transition-colors"
-                    >
-                      <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${
-                        projectsExpanded ? 'rotate-90' : 'rotate-0'
-                      }`} />
-                    </button>
-                  )}
+            {/* Workspaces Section - ALWAYS VISIBLE */}
+            <div>
+              {/* Workspaces Header */}
+              <div className="flex items-center justify-between px-3 py-2 rounded-lg transition-all text-gray-600 hover:text-blue-600 hover:bg-blue-50">
+                <div className="flex items-center space-x-3 flex-1">
+                  <Building className="w-5 h-5" />
+                  {!sidebarCollapsed && <span className="font-medium">Workspaces</span>}
                 </div>
-
-                {/* Projects List */}
                 {!sidebarCollapsed && (
-                  <div className={`overflow-hidden transition-all duration-300 ${
-                    projectsExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-                  }`}>
-                    <div className="ml-6 mt-2 space-y-1">
-                      {loadingProjects ? (
-                        <div className="px-3 py-2 text-sm text-gray-500">Loading projects...</div>
-                      ) : projects.length > 0 ? (
-                        projects.map((project) => (
-                          <div key={project.id}>
-                            {/* Project Link */}
-                            <Link
-                              href={`/workspace/${currentWorkspaceId}/project/${project.id}`}
-                              className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all ${
-                                project.id === currentProjectId 
-                                  ? 'bg-blue-50 text-blue-600 font-medium'
-                                  : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
-                              }`}
-                            >
-                              <div 
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: project.color || '#6b7280' }}
-                              />
-                              <span className="truncate">{project.name}</span>
-                            </Link>
-                            
-                            {/* Project Views - only show for current project */}
-                            {project.id === currentProjectId && (
-                              <div className="ml-6 mt-1 space-y-1">
-                                <Link
-                                  href={`/workspace/${currentWorkspaceId}/project/${project.id}/board`}
-                                  className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
-                                    pathname?.includes('/board')
-                                      ? 'bg-blue-50 text-blue-600 font-medium'
-                                      : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
-                                  }`}
-                                >
-                                  <Kanban className="w-4 h-4" />
-                                  <span>Board</span>
-                                </Link>
-                                <Link
-                                  href={`/workspace/${currentWorkspaceId}/project/${project.id}/list`}
-                                  className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
-                                    pathname?.includes('/list')
-                                      ? 'bg-blue-50 text-blue-600 font-medium'
-                                      : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
-                                  }`}
-                                >
-                                  <List className="w-4 h-4" />
-                                  <span>List</span>
-                                </Link>
-                                <Link
-                                  href={`/workspace/${currentWorkspaceId}/project/${project.id}/gantt`}
-                                  className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
-                                    pathname?.includes('/gantt')
-                                      ? 'bg-blue-50 text-blue-600 font-medium'
-                                      : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
-                                  }`}
-                                >
-                                  <Calendar className="w-4 h-4" />
-                                  <span>Gantt</span>
-                                </Link>
-                              </div>
-                            )}
-                          </div>
-                        ))
-                      ) : (
-                        <div className="px-3 py-2 text-sm text-gray-500">No projects found</div>
-                      )}
-                    </div>
-                  </div>
+                  <button
+                    onClick={() => setWorkspacesExpanded(!workspacesExpanded)}
+                    className="p-1 hover:bg-gray-200 rounded transition-colors"
+                  >
+                    <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${
+                      workspacesExpanded ? 'rotate-90' : 'rotate-0'
+                    }`} />
+                  </button>
                 )}
               </div>
-            )}
 
-            {/* Workspaces Section - only show at home level */}
-            {!currentWorkspaceId && (
-              <div>
-                {/* Workspaces Header */}
-                <div className={`flex items-center justify-between px-3 py-2 rounded-lg transition-all ${
-                  pathname === '/' 
-                    ? 'bg-blue-50 text-blue-600 font-medium' 
-                    : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+              {/* Workspaces List */}
+              {!sidebarCollapsed && (
+                <div className={`overflow-hidden transition-all duration-300 ${
+                  workspacesExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
                 }`}>
-                  <Link 
-                    href="/" 
-                    className="flex items-center space-x-3 flex-1"
-                  >
-                    <Building className="w-5 h-5" />
-                    {!sidebarCollapsed && <span className="font-medium">Workspaces</span>}
-                  </Link>
-                  {!sidebarCollapsed && (
-                    <button
-                      onClick={() => setWorkspacesExpanded(!workspacesExpanded)}
-                      className="p-1 hover:bg-gray-200 rounded transition-colors"
-                    >
-                      <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${
-                        workspacesExpanded ? 'rotate-90' : 'rotate-0'
-                      }`} />
-                    </button>
-                  )}
-                </div>
-
-                {/* Workspaces List */}
-                {!sidebarCollapsed && (
-                  <div className={`overflow-hidden transition-all duration-300 ${
-                    workspacesExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-                  }`}>
-                    <div className="ml-6 mt-2 space-y-1">
-                      {loadingWorkspaces ? (
-                        <div className="px-3 py-2 text-sm text-gray-500">Loading workspaces...</div>
-                      ) : workspaces.length > 0 ? (
-                        workspaces.map((workspace) => (
+                  <div className="ml-6 mt-2 space-y-1">
+                    {loadingWorkspaces ? (
+                      <div className="px-3 py-2 text-sm text-gray-500">Loading workspaces...</div>
+                    ) : workspaces.length > 0 ? (
+                      workspaces.map((workspace) => (
+                        <div key={workspace.id}>
+                          {/* Workspace Link */}
                           <Link
-                            key={workspace.id}
                             href={`/workspace/${workspace.id}`}
-                            className="flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                            className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all ${
+                              workspace.id === currentWorkspaceId 
+                                ? 'bg-blue-50 text-blue-600 font-medium'
+                                : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+                            }`}
                           >
                             <Building className="w-3 h-3" />
                             <span className="truncate">{workspace.name}</span>
                           </Link>
-                        ))
-                      ) : (
-                        <div className="px-3 py-2 text-sm text-gray-500">No workspaces found</div>
-                      )}
-                    </div>
+
+                          {/* Projects under this workspace - only show if it's the current workspace */}
+                          {workspace.id === currentWorkspaceId && (
+                            <div className="ml-4 mt-1 space-y-1">
+                              {/* Projects Header */}
+                              <div className="flex items-center justify-between px-3 py-1 text-xs text-gray-500">
+                                <span>Projects</span>
+                                <button
+                                  onClick={() => setProjectsExpanded(!projectsExpanded)}
+                                  className="p-1 hover:bg-gray-200 rounded transition-colors"
+                                >
+                                  <ChevronRight className={`w-3 h-3 transition-transform duration-200 ${
+                                    projectsExpanded ? 'rotate-90' : 'rotate-0'
+                                  }`} />
+                                </button>
+                              </div>
+
+                              {/* Projects List */}
+                              <div className={`overflow-hidden transition-all duration-300 ${
+                                projectsExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                              }`}>
+                                <div className="ml-2 space-y-1">
+                                  {loadingProjects ? (
+                                    <div className="px-3 py-2 text-xs text-gray-500">Loading...</div>
+                                  ) : projects.length > 0 ? (
+                                    projects.map((project) => (
+                                      <div key={project.id}>
+                                        {/* Project Link */}
+                                        <Link
+                                          href={`/workspace/${workspace.id}/project/${project.id}`}
+                                          className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
+                                            project.id === currentProjectId 
+                                              ? 'bg-blue-50 text-blue-600 font-medium'
+                                              : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+                                          }`}
+                                        >
+                                          <div 
+                                            className="w-2 h-2 rounded-full"
+                                            style={{ backgroundColor: project.color || '#6b7280' }}
+                                          />
+                                          <span className="truncate">{project.name}</span>
+                                        </Link>
+                                        
+                                        {/* Project Views - only show for current project */}
+                                        {project.id === currentProjectId && (
+                                          <div className="ml-6 mt-1 space-y-1">
+                                            <Link
+                                              href={`/workspace/${workspace.id}/project/${project.id}/board`}
+                                              className={`flex items-center space-x-2 px-2 py-1 rounded text-xs transition-all ${
+                                                pathname?.includes('/board')
+                                                  ? 'bg-blue-50 text-blue-600 font-medium'
+                                                  : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
+                                              }`}
+                                            >
+                                              <Kanban className="w-3 h-3" />
+                                              <span>Board</span>
+                                            </Link>
+                                            <Link
+                                              href={`/workspace/${workspace.id}/project/${project.id}/list`}
+                                              className={`flex items-center space-x-2 px-2 py-1 rounded text-xs transition-all ${
+                                                pathname?.includes('/list')
+                                                  ? 'bg-blue-50 text-blue-600 font-medium'
+                                                  : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
+                                              }`}
+                                            >
+                                              <List className="w-3 h-3" />
+                                              <span>List</span>
+                                            </Link>
+                                            <Link
+                                              href={`/workspace/${workspace.id}/project/${project.id}/gantt`}
+                                              className={`flex items-center space-x-2 px-2 py-1 rounded text-xs transition-all ${
+                                                pathname?.includes('/gantt')
+                                                  ? 'bg-blue-50 text-blue-600 font-medium'
+                                                  : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
+                                              }`}
+                                            >
+                                              <Calendar className="w-3 h-3" />
+                                              <span>Gantt</span>
+                                            </Link>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <div className="px-3 py-2 text-xs text-gray-500">No projects</div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="px-3 py-2 text-sm text-gray-500">No workspaces found</div>
+                    )}
                   </div>
-                )}
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </nav>
 
           {/* User Info */}
