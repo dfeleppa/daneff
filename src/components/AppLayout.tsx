@@ -1,24 +1,58 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Home, Folder, Menu, ChevronLeft, X, Kanban, Calendar } from 'lucide-react'
+import { Home, Folder, Menu, ChevronLeft, X, Kanban, Calendar, ChevronDown, ChevronRight } from 'lucide-react'
+import { getUserWorkspaces } from '@/lib/api/users'
+import { getProjects } from '@/lib/api/projects'
 
 interface AppLayoutProps {
   children: React.ReactNode
   actions?: React.ReactNode
 }
 
+interface Project {
+  id: string
+  name: string
+  color?: string
+}
+
 export default function AppLayout({ children, actions }: AppLayoutProps) {
   const { data: session } = useSession()
   const pathname = usePathname()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [projectsExpanded, setProjectsExpanded] = useState(false)
+  const [projects, setProjects] = useState<Project[]>([])
+  const [loadingProjects, setLoadingProjects] = useState(false)
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      loadProjects()
+    }
+  }, [session])
+
+  const loadProjects = async () => {
+    if (!session?.user?.id || loadingProjects) return
+    
+    try {
+      setLoadingProjects(true)
+      const userWorkspaces = await getUserWorkspaces(session.user.id)
+      
+      if (userWorkspaces.length > 0) {
+        const { projects: workspaceProjects } = await getProjects(userWorkspaces[0].id)
+        setProjects(workspaceProjects || [])
+      }
+    } catch (error) {
+      console.error('Error loading projects:', error)
+    } finally {
+      setLoadingProjects(false)
+    }
+  }
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home, current: pathname === '/' },
-    { name: 'Projects', href: '/projects', icon: Folder, current: pathname === '/projects' },
     { name: 'Board', href: '/board', icon: Kanban, current: pathname === '/board' || pathname?.startsWith('/board?') },
     { name: 'Gantt', href: '/gantt', icon: Calendar, current: pathname === '/gantt' || pathname?.startsWith('/gantt?') },
   ]
@@ -62,6 +96,63 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
                 </Link>
               )
             })}
+
+            {/* Projects Section */}
+            <div>
+              {/* Projects Header */}
+              <div className={`flex items-center justify-between px-3 py-2 rounded-lg transition-all ${
+                pathname === '/projects' 
+                  ? 'bg-blue-50 text-blue-600 font-medium' 
+                  : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+              }`}>
+                <Link 
+                  href="/projects" 
+                  className="flex items-center space-x-3 flex-1"
+                >
+                  <Folder className="w-5 h-5" />
+                  {!sidebarCollapsed && <span className="font-medium">Projects</span>}
+                </Link>
+                {!sidebarCollapsed && (
+                  <button
+                    onClick={() => setProjectsExpanded(!projectsExpanded)}
+                    className="p-1 hover:bg-gray-200 rounded transition-colors"
+                  >
+                    <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${
+                      projectsExpanded ? 'rotate-90' : 'rotate-0'
+                    }`} />
+                  </button>
+                )}
+              </div>
+
+              {/* Projects List */}
+              {!sidebarCollapsed && (
+                <div className={`overflow-hidden transition-all duration-300 ${
+                  projectsExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                }`}>
+                  <div className="ml-6 mt-2 space-y-1">
+                    {loadingProjects ? (
+                      <div className="px-3 py-2 text-sm text-gray-500">Loading projects...</div>
+                    ) : projects.length > 0 ? (
+                      projects.map((project) => (
+                        <Link
+                          key={project.id}
+                          href={`/board?project=${project.id}`}
+                          className="flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                        >
+                          <div 
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: project.color || '#6b7280' }}
+                          />
+                          <span className="truncate">{project.name}</span>
+                        </Link>
+                      ))
+                    ) : (
+                      <div className="px-3 py-2 text-sm text-gray-500">No projects found</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </nav>
 
           {/* User Info */}
