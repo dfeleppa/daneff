@@ -196,23 +196,23 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
       onPointerMove={handlePointerMove}
       className={`
         ${isSubTask 
-          ? 'bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border-l-4 border-l-blue-400 border border-blue-100/50 p-4 mb-3 ml-6' 
-          : 'bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-6 transition-all duration-200'
+          ? 'bg-white/80 backdrop-blur-sm rounded-lg shadow-sm border-l-4 border-l-blue-400 border border-blue-100/50 p-2 mb-2 ml-4' 
+          : 'bg-white/90 backdrop-blur-sm rounded-lg shadow-md border border-gray-200/50 p-3 transition-all duration-200'
         } 
-        hover:shadow-xl hover:border-gray-300/50 hover:-translate-y-1 transform group relative 
+        hover:shadow-lg hover:border-gray-300/50 transform group relative 
         ${isSubTask 
           ? 'cursor-pointer' // Sub-tasks are not draggable, only clickable
           : isPointerDown 
-            ? 'cursor-grabbing shadow-2xl' 
+            ? 'cursor-grabbing shadow-xl' 
             : 'cursor-pointer hover:bg-white'
         }
-        ${isDragging ? 'opacity-60 cursor-grabbing shadow-2xl scale-105' : ''} 
+        ${isDragging ? 'opacity-60 cursor-grabbing shadow-xl scale-105' : ''} 
         ${isCompleted ? (isSubTask ? 'bg-green-50/80 border-l-green-400 border-green-100/50' : 'bg-green-50/90 border-green-200/50') : ''}
       `}
     >
       
       <div className="relative z-20">
-        <div className="flex justify-between items-start mb-2">
+        <div className="flex justify-between items-start mb-1">
           <div className="flex-1 mr-2">
             <div className="flex items-center">
               {/* Collapse/Expand button for parent tasks */}
@@ -225,7 +225,7 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
                   }}
                   onMouseDown={(e) => e.stopPropagation()}
                   onPointerDown={(e) => e.stopPropagation()}
-                  className="mr-2 p-0.5 hover:bg-gray-200 rounded transition-colors"
+                  className="mr-1 p-0.5 hover:bg-gray-200 rounded transition-colors"
                   data-action-button
                   title={isCollapsed ? 'Expand sub-tasks' : 'Collapse sub-tasks'}
                 >
@@ -236,26 +236,26 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
                   )}
                 </button>
               )}
-              <h3 className={`${isSubTask ? 'text-sm' : 'text-base'} font-semibold line-clamp-2 pointer-events-none ${
+              <h3 className={`${isSubTask ? 'text-sm' : 'text-sm'} font-medium line-clamp-2 pointer-events-none ${
                 isCompleted ? 'text-green-700 line-through' : 'text-gray-800'
               }`}>
-                {isSubTask && <span className="text-blue-500 mr-2 font-bold text-lg">↳</span>}
+                {isSubTask && <span className="text-blue-500 mr-1 font-bold text-sm">↳</span>}
                 {task.title}
               </h3>
             </div>
             {/* Sub-tasks indicator - only show on parent tasks */}
             {!isSubTask && task.sub_tasks && task.sub_tasks.length > 0 && (
-              <div className="flex items-center mt-3 text-sm text-gray-600">
-                <Users className="w-4 h-4 mr-2" />
+              <div className="flex items-center mt-2 text-xs text-gray-600">
+                <Users className="w-3 h-3 mr-1" />
                 <span className="font-medium">{task.sub_tasks.length}</span>
                 <span className="ml-1">sub-task{task.sub_tasks.length !== 1 ? 's' : ''}</span>
                 {task.completion_percentage !== undefined && (
-                  <span className="ml-3 text-blue-600 font-semibold bg-blue-50 px-2 py-1 rounded-lg text-xs">
-                    {task.completion_percentage}% complete
+                  <span className="ml-2 text-blue-600 font-semibold bg-blue-50 px-1.5 py-0.5 rounded text-xs">
+                    {task.completion_percentage}%
                   </span>
                 )}
                 {isCollapsed && (
-                  <span className="ml-3 text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">collapsed</span>
+                  <span className="ml-2 text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">collapsed</span>
                 )}
               </div>
             )}
@@ -480,43 +480,43 @@ function Column({ status, tasks, onAddTask, onEditTask, onDeleteTask, onComplete
   const columnStyle = getColumnStyle(status.name)
 
   return (
-    <div className="flex-shrink-0 w-80">
+    <div className="flex-shrink-0 w-72">
       <div 
         ref={setNodeRef}
         className={`${columnStyle.bg} ${columnStyle.border} rounded-2xl border-2 transition-all duration-200 shadow-sm backdrop-blur-sm ${
           isOver ? 'ring-4 ring-blue-400/30 shadow-lg scale-105 transform' : ''
         }`}
       >
-        <div className={`${columnStyle.header} rounded-t-2xl px-6 py-4 border-b ${columnStyle.border}`}>
+        <div className={`${columnStyle.header} rounded-t-2xl px-4 py-3 border-b ${columnStyle.border}`}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2">
               <div
-                className="w-4 h-4 rounded-full shadow-sm border-2 border-white/50"
+                className="w-3 h-3 rounded-full shadow-sm border-2 border-white/50"
                 style={{ backgroundColor: status.color }}
               ></div>
-              <h2 className="font-semibold text-gray-800 text-lg">{status.name}</h2>
-              <span className="text-sm text-gray-500 bg-white/60 px-2.5 py-1 rounded-full font-medium">
+              <h2 className="font-semibold text-gray-800 text-base">{status.name}</h2>
+              <span className="text-xs text-gray-500 bg-white/60 px-2 py-0.5 rounded-full font-medium">
                 {tasks.length}
               </span>
             </div>
             <button
               onClick={() => onAddTask(status.id)}
-              className="text-gray-500 hover:text-gray-700 hover:bg-white/50 p-2 rounded-lg transition-all duration-200"
+              className="text-gray-500 hover:text-gray-700 hover:bg-white/50 p-1.5 rounded-lg transition-all duration-200"
               title="Add new task"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-4">
           <SortableContext
             items={tasks.map(task => task.id)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-3 min-h-32">
+            <div className="space-y-2 min-h-24">
               {tasks.length === 0 ? (
-                <div className="text-center py-12">
+                <div className="text-center py-8">
                   <div className="text-gray-400 mb-3">
                     <Plus className="w-12 h-12 mx-auto opacity-30" />
                   </div>
@@ -1133,7 +1133,7 @@ function BoardPageContent() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex space-x-8 overflow-x-auto pb-8">
+          <div className="flex space-x-4 overflow-x-auto pb-8">
             {statusColumns.map(({ status, tasks }) => (
               <Column
                 key={status.id}
