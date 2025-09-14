@@ -8,9 +8,10 @@ import { Home, Folder, Menu, ChevronLeft, X, Kanban, Calendar } from 'lucide-rea
 
 interface AppLayoutProps {
   children: React.ReactNode
+  actions?: React.ReactNode
 }
 
-export default function AppLayout({ children }: AppLayoutProps) {
+export default function AppLayout({ children, actions }: AppLayoutProps) {
   const { data: session } = useSession()
   const pathname = usePathname()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -92,7 +93,42 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       {/* Main Content */}
       <div className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-72'}`}>
-        <div className="min-h-screen">
+        {/* Fixed Header */}
+        <header className="fixed top-0 right-0 left-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-200/50" style={{ marginLeft: sidebarCollapsed ? '64px' : '288px' }}>
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <h1 className="text-lg font-semibold text-gray-900">
+                  {pathname === '/' ? 'Dashboard' :
+                   pathname === '/projects' ? 'Projects' :
+                   pathname === '/board' || pathname?.startsWith('/board') ? 'Kanban Board' :
+                   pathname === '/gantt' || pathname?.startsWith('/gantt') ? 'Gantt Chart' :
+                   'TaskFlow'}
+                </h1>
+              </div>
+              <div className="flex items-center space-x-3">
+                {actions && (
+                  <div className="flex items-center space-x-3">
+                    {actions}
+                  </div>
+                )}
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                    {session?.user?.name?.[0] || 'U'}
+                  </div>
+                  <div className="hidden sm:block">
+                    <div className="text-sm font-medium text-gray-900">
+                      {session?.user?.name}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+        
+        {/* Content with top padding to account for fixed header */}
+        <div className="min-h-screen pt-20">
           {children}
         </div>
       </div>

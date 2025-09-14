@@ -146,12 +146,9 @@ function DashboardContent() {
     <AppLayout>
       <div className="p-8">
         <div className="max-w-7xl mx-auto">
-          {/* Dashboard Header */}
+          {/* Welcome Message */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-blue-600 bg-clip-text text-transparent">
-              Dashboard
-            </h1>
-            <p className="text-gray-600 mt-1">Welcome back, {session.user?.name}</p>
+            <p className="text-lg text-gray-600">Welcome back, {session.user?.name}</p>
           </div>
 
           {/* Stats Grid */}

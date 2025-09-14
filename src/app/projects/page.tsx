@@ -384,54 +384,40 @@ export default function ProjectsPage() {
     '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1'
   ]
 
-  return (
-    <AppLayout>
-      <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <nav className="text-sm breadcrumbs mb-2">
-                <Link href="/" className="text-gray-500 hover:text-gray-700">Dashboard</Link>
-                <span className="text-gray-500 mx-2">/</span>
-                <span className="text-gray-900">Projects</span>
-              </nav>
-              <h1 className="text-2xl font-bold text-gray-900">Projects</h1>
-              <p className="text-gray-600">Manage your team's projects and workflows</p>
-            </div>
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                New Project
-              </button>
-              <button
-                onClick={loadProjects}
-                disabled={loading}
-                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 flex items-center disabled:opacity-50"
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
-              </button>
-              {hasCalendarAccess && (
-                <button
-                  onClick={handleSyncWithCalendar}
-                  disabled={calendarSyncLoading}
-                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center disabled:opacity-50"
-                >
-                  <Calendar className={`h-4 w-4 mr-2 ${calendarSyncLoading ? 'animate-pulse' : ''}`} />
-                  {calendarSyncLoading ? 'Syncing...' : 'Sync Calendar'}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+  const projectActions = (
+    <>
+      <button
+        onClick={() => setShowCreateModal(true)}
+        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+      >
+        <Plus className="h-4 w-4 mr-2" />
+        New Project
+      </button>
+      <button
+        onClick={loadProjects}
+        disabled={loading}
+        className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 flex items-center disabled:opacity-50"
+      >
+        <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+        Refresh
+      </button>
+      {hasCalendarAccess && (
+        <button
+          onClick={handleSyncWithCalendar}
+          disabled={calendarSyncLoading}
+          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center disabled:opacity-50"
+        >
+          <Calendar className={`h-4 w-4 mr-2 ${calendarSyncLoading ? 'animate-pulse' : ''}`} />
+          {calendarSyncLoading ? 'Syncing...' : 'Sync Calendar'}
+        </button>
+      )}
+    </>
+  )
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  return (
+    <AppLayout actions={projectActions}>
+      <div className="p-8">
+        <div className="max-w-7xl mx-auto">
         {/* Error and Success Messages */}
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
