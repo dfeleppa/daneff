@@ -2,15 +2,20 @@
 
 import { useState, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Home, Folder, Menu, ChevronLeft, X, Kanban, Calendar, List, ChevronDown, ChevronRight } from 'lucide-react'
+import { Home, Folder, Menu, ChevronLeft, X, Kanban, Calendar, List, ChevronDown, ChevronRight, Building } from 'lucide-react'
 import { getUserWorkspaces } from '@/lib/api/users'
 import { getProjects } from '@/lib/api/projects'
 
 interface AppLayoutProps {
   children: React.ReactNode
   actions?: React.ReactNode
+}
+
+interface Workspace {
+  id: string
+  name: string
 }
 
 interface Project {
@@ -22,28 +27,52 @@ interface Project {
 export default function AppLayout({ children, actions }: AppLayoutProps) {
   const { data: session } = useSession()
   const pathname = usePathname()
+  const params = useParams()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [projectsExpanded, setProjectsExpanded] = useState(false)
+  const [workspacesExpanded, setWorkspacesExpanded] = useState(false)
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [projects, setProjects] = useState<Project[]>([])
+  const [loadingWorkspaces, setLoadingWorkspaces] = useState(false)
   const [loadingProjects, setLoadingProjects] = useState(false)
+  
+  // Extract current workspace and project IDs from params
+  const currentWorkspaceId = params?.workspaceId as string
+  const currentProjectId = params?.projectId as string
 
   useEffect(() => {
     if (session?.user?.id) {
-      loadProjects()
+      loadWorkspaces()
     }
   }, [session])
 
+  useEffect(() => {
+    if (currentWorkspaceId && session?.user?.id) {
+      loadProjects()
+    }
+  }, [currentWorkspaceId, session])
+
+  const loadWorkspaces = async () => {
+    if (!session?.user?.id || loadingWorkspaces) return
+    
+    try {
+      setLoadingWorkspaces(true)
+      const userWorkspaces = await getUserWorkspaces(session.user.id)
+      setWorkspaces(userWorkspaces || [])
+    } catch (error) {
+      console.error('Error loading workspaces:', error)
+    } finally {
+      setLoadingWorkspaces(false)
+    }
+  }
+
   const loadProjects = async () => {
-    if (!session?.user?.id || loadingProjects) return
+    if (!currentWorkspaceId || !session?.user?.id || loadingProjects) return
     
     try {
       setLoadingProjects(true)
-      const userWorkspaces = await getUserWorkspaces(session.user.id)
-      
-      if (userWorkspaces.length > 0) {
-        const { projects: workspaceProjects } = await getProjects(userWorkspaces[0].id)
-        setProjects(workspaceProjects || [])
-      }
+      const { projects: workspaceProjects } = await getProjects(currentWorkspaceId)
+      setProjects(workspaceProjects || [])
     } catch (error) {
       console.error('Error loading projects:', error)
     } finally {
@@ -51,12 +80,45 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
     }
   }
 
-  const navigation = [
-    { name: 'Dashboard', href: '/', icon: Home, current: pathname === '/' },
-    { name: 'Board', href: '/board', icon: Kanban, current: pathname === '/board' || pathname?.startsWith('/board?') },
-    { name: 'List', href: '/list', icon: List, current: pathname === '/list' || pathname?.startsWith('/list?') },
-    { name: 'Gantt', href: '/gantt', icon: Calendar, current: pathname === '/gantt' || pathname?.startsWith('/gantt?') },
-  ]
+  // Navigation based on current context
+  let navigation
+  
+  if (currentWorkspaceId && currentProjectId) {
+    // Project level - show views
+    navigation = [
+      { name: 'Board', href: `/workspace/${currentWorkspaceId}/project/${currentProjectId}/board`, icon: Kanban, current: pathname?.includes('/board') },
+      { name: 'List', href: `/workspace/${currentWorkspaceId}/project/${currentProjectId}/list`, icon: List, current: pathname?.includes('/list') },
+      { name: 'Gantt', href: `/workspace/${currentWorkspaceId}/project/${currentProjectId}/gantt`, icon: Calendar, current: pathname?.includes('/gantt') },
+    ]
+  } else if (currentWorkspaceId) {
+    // Workspace level - show workspace dashboard
+    navigation = [
+      { name: 'Dashboard', href: `/workspace/${currentWorkspaceId}`, icon: Home, current: pathname === `/workspace/${currentWorkspaceId}` },
+    ]
+  } else {
+    // Home level - show workspace selection
+    navigation = [
+      { name: 'Workspaces', href: '/', icon: Building, current: pathname === '/' },
+    ]
+  }
+
+  // Get current workspace and project names for display
+  const currentWorkspace = workspaces.find(w => w.id === currentWorkspaceId)
+  const currentProject = projects.find(p => p.id === currentProjectId)
+
+  // Dynamic page title
+  const getPageTitle = () => {
+    if (currentProject && currentWorkspace) {
+      if (pathname?.includes('/board')) return `${currentProject.name} - Board`
+      if (pathname?.includes('/list')) return `${currentProject.name} - List`  
+      if (pathname?.includes('/gantt')) return `${currentProject.name} - Gantt`
+      return `${currentProject.name} - Project`
+    }
+    if (currentWorkspace) {
+      return `${currentWorkspace.name} - Workspace`
+    }
+    return 'TaskFlow'
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex">
@@ -98,62 +160,124 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
               )
             })}
 
-            {/* Projects Section */}
-            <div>
-              {/* Projects Header */}
-              <div className={`flex items-center justify-between px-3 py-2 rounded-lg transition-all ${
-                pathname === '/projects' 
-                  ? 'bg-blue-50 text-blue-600 font-medium' 
-                  : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
-              }`}>
-                <Link 
-                  href="/projects" 
-                  className="flex items-center space-x-3 flex-1"
-                >
-                  <Folder className="w-5 h-5" />
-                  {!sidebarCollapsed && <span className="font-medium">Projects</span>}
-                </Link>
-                {!sidebarCollapsed && (
-                  <button
-                    onClick={() => setProjectsExpanded(!projectsExpanded)}
-                    className="p-1 hover:bg-gray-200 rounded transition-colors"
+            {/* Projects Section - only show if we're in a workspace */}
+            {currentWorkspaceId && (
+              <div>
+                {/* Projects Header */}
+                <div className={`flex items-center justify-between px-3 py-2 rounded-lg transition-all ${
+                  pathname === `/workspace/${currentWorkspaceId}` 
+                    ? 'bg-blue-50 text-blue-600 font-medium' 
+                    : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+                }`}>
+                  <Link 
+                    href={`/workspace/${currentWorkspaceId}`} 
+                    className="flex items-center space-x-3 flex-1"
                   >
-                    <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${
-                      projectsExpanded ? 'rotate-90' : 'rotate-0'
-                    }`} />
-                  </button>
+                    <Folder className="w-5 h-5" />
+                    {!sidebarCollapsed && <span className="font-medium">Projects</span>}
+                  </Link>
+                  {!sidebarCollapsed && (
+                    <button
+                      onClick={() => setProjectsExpanded(!projectsExpanded)}
+                      className="p-1 hover:bg-gray-200 rounded transition-colors"
+                    >
+                      <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${
+                        projectsExpanded ? 'rotate-90' : 'rotate-0'
+                      }`} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Projects List */}
+                {!sidebarCollapsed && (
+                  <div className={`overflow-hidden transition-all duration-300 ${
+                    projectsExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                  }`}>
+                    <div className="ml-6 mt-2 space-y-1">
+                      {loadingProjects ? (
+                        <div className="px-3 py-2 text-sm text-gray-500">Loading projects...</div>
+                      ) : projects.length > 0 ? (
+                        projects.map((project) => (
+                          <Link
+                            key={project.id}
+                            href={`/workspace/${currentWorkspaceId}/project/${project.id}`}
+                            className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all ${
+                              project.id === currentProjectId 
+                                ? 'bg-blue-50 text-blue-600 font-medium'
+                                : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+                            }`}
+                          >
+                            <div 
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: project.color || '#6b7280' }}
+                            />
+                            <span className="truncate">{project.name}</span>
+                          </Link>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-sm text-gray-500">No projects found</div>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
+            )}
 
-              {/* Projects List */}
-              {!sidebarCollapsed && (
-                <div className={`overflow-hidden transition-all duration-300 ${
-                  projectsExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+            {/* Workspaces Section - only show at home level */}
+            {!currentWorkspaceId && (
+              <div>
+                {/* Workspaces Header */}
+                <div className={`flex items-center justify-between px-3 py-2 rounded-lg transition-all ${
+                  pathname === '/' 
+                    ? 'bg-blue-50 text-blue-600 font-medium' 
+                    : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
                 }`}>
-                  <div className="ml-6 mt-2 space-y-1">
-                    {loadingProjects ? (
-                      <div className="px-3 py-2 text-sm text-gray-500">Loading projects...</div>
-                    ) : projects.length > 0 ? (
-                      projects.map((project) => (
-                        <Link
-                          key={project.id}
-                          href={`/board?project=${project.id}`}
-                          className="flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                        >
-                          <div 
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: project.color || '#6b7280' }}
-                          />
-                          <span className="truncate">{project.name}</span>
-                        </Link>
-                      ))
-                    ) : (
-                      <div className="px-3 py-2 text-sm text-gray-500">No projects found</div>
-                    )}
-                  </div>
+                  <Link 
+                    href="/" 
+                    className="flex items-center space-x-3 flex-1"
+                  >
+                    <Building className="w-5 h-5" />
+                    {!sidebarCollapsed && <span className="font-medium">Workspaces</span>}
+                  </Link>
+                  {!sidebarCollapsed && (
+                    <button
+                      onClick={() => setWorkspacesExpanded(!workspacesExpanded)}
+                      className="p-1 hover:bg-gray-200 rounded transition-colors"
+                    >
+                      <ChevronRight className={`w-4 h-4 transition-transform duration-200 ${
+                        workspacesExpanded ? 'rotate-90' : 'rotate-0'
+                      }`} />
+                    </button>
+                  )}
                 </div>
-              )}
-            </div>
+
+                {/* Workspaces List */}
+                {!sidebarCollapsed && (
+                  <div className={`overflow-hidden transition-all duration-300 ${
+                    workspacesExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                  }`}>
+                    <div className="ml-6 mt-2 space-y-1">
+                      {loadingWorkspaces ? (
+                        <div className="px-3 py-2 text-sm text-gray-500">Loading workspaces...</div>
+                      ) : workspaces.length > 0 ? (
+                        workspaces.map((workspace) => (
+                          <Link
+                            key={workspace.id}
+                            href={`/workspace/${workspace.id}`}
+                            className="flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                          >
+                            <Building className="w-3 h-3" />
+                            <span className="truncate">{workspace.name}</span>
+                          </Link>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-sm text-gray-500">No workspaces found</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </nav>
 
           {/* User Info */}
@@ -191,11 +315,7 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <h1 className="text-lg font-semibold text-gray-900">
-                  {pathname === '/' ? 'Dashboard' :
-                   pathname === '/projects' ? 'Projects' :
-                   pathname === '/board' || pathname?.startsWith('/board') ? 'Kanban Board' :
-                   pathname === '/gantt' || pathname?.startsWith('/gantt') ? 'Gantt Chart' :
-                   'TaskFlow'}
+                  {getPageTitle()}
                 </h1>
               </div>
               <div className="flex items-center space-x-3">
