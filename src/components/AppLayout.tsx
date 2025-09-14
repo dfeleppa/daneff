@@ -198,11 +198,6 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
                 </h1>
               </div>
               <div className="flex items-center space-x-3">
-                {actions && (
-                  <div className="flex items-center space-x-3">
-                    {actions}
-                  </div>
-                )}
                 <div className="flex items-center space-x-2">
                   <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
                     {session?.user?.name?.[0] || 'U'}
@@ -217,9 +212,20 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
             </div>
           </div>
         </header>
+
+        {/* Sub Header for Actions */}
+        {actions && (
+          <div className="fixed top-16 right-0 left-0 z-20 bg-gray-50/95 backdrop-blur-md border-b border-gray-200/30" style={{ marginLeft: sidebarCollapsed ? '64px' : '288px' }}>
+            <div className="px-6 py-3">
+              <div className="flex items-center justify-end space-x-3">
+                {actions}
+              </div>
+            </div>
+          </div>
+        )}
         
-        {/* Content with top padding to account for fixed header */}
-        <div className="min-h-screen pt-20">
+        {/* Content with proper padding for both headers */}
+        <div className={`min-h-screen ${actions ? 'pt-32' : 'pt-20'}`}>
           {children}
         </div>
       </div>

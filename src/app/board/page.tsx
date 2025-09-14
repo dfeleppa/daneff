@@ -1050,57 +1050,32 @@ function BoardPageContent() {
     }
   })
 
-  return (
-    <AppLayout>
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <div className="flex items-center">
-              <Link href="/" className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mr-12">
-                TaskFlow
-              </Link>
-              <nav className="hidden md:flex md:space-x-1">
-                <Link href="/" className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200">
-                  Dashboard
-                </Link>
-                <Link href="/projects" className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200">
-                  Projects
-                </Link>
-                <Link href="/board" className="text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 shadow-sm">
-                  Board
-                </Link>
-                <Link href="/gantt" className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200">
-                  Gantt
-                </Link>
-              </nav>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <select 
-                value={selectedProject.id}
-                onChange={(e) => {
-                  const project = projects.find(p => p.id === e.target.value)
-                  setSelectedProject(project || null)
-                }}
-                className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 shadow-sm"
-              >
-                {projects.map(project => (
-                  <option key={project.id} value={project.id}>{project.name}</option>
-                ))}
-              </select>
-              <button
-                onClick={() => handleAddTask(taskStatuses[0]?.id)}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-2.5 rounded-xl hover:from-blue-700 hover:to-indigo-700 text-sm font-medium flex items-center transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                New Task
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+  const boardActions = (
+    <>
+      <select 
+        value={selectedProject.id}
+        onChange={(e) => {
+          const project = projects.find(p => p.id === e.target.value)
+          setSelectedProject(project || null)
+        }}
+        className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 shadow-sm"
+      >
+        {projects.map(project => (
+          <option key={project.id} value={project.id}>{project.name}</option>
+        ))}
+      </select>
+      <button
+        onClick={() => handleAddTask(taskStatuses[0]?.id)}
+        className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-2.5 rounded-xl hover:from-blue-700 hover:to-indigo-700 text-sm font-medium flex items-center transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+      >
+        <Plus className="w-4 h-4 mr-2" />
+        New Task
+      </button>
+    </>
+  )
 
+  return (
+    <AppLayout actions={boardActions}>
       {/* Board Content */}
       <main className="max-w-full mx-auto px-6 sm:px-8 lg:px-10 py-10">
         {/* Error and Success Messages */}
