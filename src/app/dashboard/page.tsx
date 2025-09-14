@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { createClient } from '@supabase/supabase-js'
 import AppLayout from '@/components/AppLayout'
 import { 
   Building, 
@@ -14,11 +13,8 @@ import {
   Calendar,
   TrendingUp
 } from 'lucide-react'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { getUserWorkspaces } from '@/lib/api/users'
+import { getProjects, getProjectTasks } from '@/lib/api/projects'
 
 interface Workspace {
   id: string
@@ -37,7 +33,7 @@ interface Task {
   id: string
   title: string
   status: 'todo' | 'in_progress' | 'done'
-  priority: 'low' | 'medium' | 'high'
+  priority: 'low' | 'medium' | 'high' | 'urgent'
   due_date?: string
   project_id: string
   project?: Project
@@ -60,49 +56,52 @@ export default function OverallDashboard() {
     try {
       setLoading(true)
 
-      // Load workspaces
-      const { data: workspacesData } = await supabase
-        .from('workspaces')
-        .select('*')
-        .eq('user_id', session?.user?.id)
-        .order('created_at', { ascending: false })
+      // Load workspaces using the API function
+      const userWorkspaces = await getUserWorkspaces(session!.user.id)
+      setWorkspaces(userWorkspaces)
 
-      if (workspacesData) {
-        setWorkspaces(workspacesData)
+      // Load projects from all workspaces
+      const allProjects: Project[] = []
+      for (const workspace of userWorkspaces) {
+        try {
+          const { projects } = await getProjects(workspace.id)
+          allProjects.push(...projects.map(p => ({ 
+            ...p, 
+            workspace: { id: workspace.id, name: workspace.name } 
+          })))
+        } catch (error) {
+          console.error(`Error loading projects for workspace ${workspace.id}:`, error)
+        }
       }
+      setProjects(allProjects)
 
-      // Load projects
-      const { data: projectsData } = await supabase
-        .from('projects')
-        .select(`
-          *,
-          workspace:workspaces(id, name)
-        `)
-        .eq('user_id', session?.user?.id)
-        .order('created_at', { ascending: false })
-
-      if (projectsData) {
-        setProjects(projectsData)
+      // Load tasks from all projects
+      const allTasks: Task[] = []
+      for (const project of allProjects) {
+        try {
+          const { tasks: projectTasks } = await getProjectTasks(project.id)
+          allTasks.push(...projectTasks.map(t => ({
+            id: t.id,
+            title: t.title,
+            status: t.status?.name?.toLowerCase() === 'done' ? 'done' as const : 
+                   t.status?.name?.toLowerCase() === 'in progress' ? 'in_progress' as const : 
+                   'todo' as const,
+            priority: t.priority,
+            due_date: t.due_date || undefined,
+            project_id: t.project_id,
+            project: { 
+              id: project.id, 
+              name: project.name, 
+              workspace_id: project.workspace_id,
+              workspace: project.workspace 
+            }
+          })))
+        } catch (error) {
+          console.error(`Error loading tasks for project ${project.id}:`, error)
+        }
       }
-
-      // Load tasks
-      const { data: tasksData } = await supabase
-        .from('tasks')
-        .select(`
-          *,
-          project:projects(
-            id,
-            name,
-            workspace:workspaces(id, name)
-          )
-        `)
-        .eq('user_id', session?.user?.id)
-        .order('created_at', { ascending: false })
-        .limit(50)
-
-      if (tasksData) {
-        setTasks(tasksData)
-      }
+      setTasks(allTasks.slice(0, 50)) // Limit to 50 most recent tasks
+      
     } catch (error) {
       console.error('Error loading dashboard data:', error)
     } finally {
