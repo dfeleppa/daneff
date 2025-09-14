@@ -223,9 +223,8 @@ export async function getProjectTasks(projectId: string) {
     // Create status lookup
     const statusLookup = new Map(statusesData?.map(s => [s.id, s]) || [])
 
-    // Organize tasks into parent-child relationships
-    const taskMap = new Map()
-    const rootTasks: Task[] = []
+    // Convert all tasks to individual cards (both parent and sub-tasks)
+    const allTasks: Task[] = []
 
     // First, create all task objects
     for (const taskData of tasksData || []) {
@@ -240,25 +239,28 @@ export async function getProjectTasks(projectId: string) {
         } : null,
         sub_tasks: []
       }
-      taskMap.set(task.id, task)
+      allTasks.push(task)
     }
 
-    // Then, organize into parent-child relationships
-    taskMap.forEach((task) => {
+    // Calculate sub-task counts for parent tasks
+    const parentTaskCounts = new Map()
+    allTasks.forEach(task => {
       if (task.parent_task_id) {
-        // This is a sub-task
-        const parent = taskMap.get(task.parent_task_id)
-        if (parent) {
-          parent.sub_tasks!.push(task)
-        }
-      } else {
-        // This is a root task
-        rootTasks.push(task)
+        const count = parentTaskCounts.get(task.parent_task_id) || 0
+        parentTaskCounts.set(task.parent_task_id, count + 1)
       }
     })
 
-    console.log('✅ Tasks fetched successfully:', rootTasks.length, 'root tasks')
-    return { tasks: rootTasks, error: null }
+    // Add sub-task count to parent tasks
+    allTasks.forEach(task => {
+      if (!task.parent_task_id) {
+        const subTaskCount = parentTaskCounts.get(task.id) || 0
+        task.sub_tasks = Array(subTaskCount).fill(null) // Just for count display
+      }
+    })
+
+    console.log('✅ Tasks fetched successfully:', allTasks.length, 'total tasks')
+    return { tasks: allTasks, error: null }
   } catch (error: any) {
     console.error('Exception in getProjectTasks:', error)
     return { tasks: [], error }
@@ -420,6 +422,50 @@ export async function markTaskComplete(taskId: string, projectId: string) {
     return { success: true, task: data, error: null }
   } catch (error) {
     console.error('Exception in markTaskComplete:', error)
+    return { success: false, error }
+  }
+}
+
+// Mark task as incomplete (move back to first status)
+export async function markTaskIncomplete(taskId: string, projectId: string) {
+  try {
+    // Find the first status for this project (typically "To Do")
+    const { data: statuses } = await supabase
+      .from('task_statuses')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('order_index', { ascending: true })
+
+    const firstStatus = statuses?.[0] // Get the first status
+
+    if (!firstStatus) {
+      return { success: false, error: new Error('No initial status found') }
+    }
+
+    // Update the task status
+    const { data, error } = await supabase
+      .from('tasks')
+      .update({ 
+        status_id: firstStatus.id,
+        completion_percentage: 0
+      })
+      .eq('id', taskId)
+      .select('*')
+      .single()
+
+    if (error) {
+      console.error('Error marking task incomplete:', error)
+      return { success: false, error }
+    }
+
+    // If this task has a parent, update the parent's completion
+    if (data.parent_task_id) {
+      await updateParentTaskCompletion(data.parent_task_id)
+    }
+
+    return { success: true, task: data, error: null }
+  } catch (error) {
+    console.error('Exception in markTaskIncomplete:', error)
     return { success: false, error }
   }
 }

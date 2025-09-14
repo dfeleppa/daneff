@@ -27,7 +27,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { Calendar, MoreHorizontal, Plus, ArrowLeft, Trash2, Check, Users } from 'lucide-react'
 import { getUserWorkspaces } from '@/lib/api/users'
-import { getProjects, getProjectTasks, getTaskStatuses, updateTask, createTask, deleteTask, markTaskComplete, createSubTask } from '@/lib/api/projects'
+import { getProjects, getProjectTasks, getTaskStatuses, updateTask, createTask, deleteTask, markTaskComplete, markTaskIncomplete, createSubTask } from '@/lib/api/projects'
 
 interface Task {
   id: string
@@ -81,10 +81,11 @@ interface TaskCardProps {
   onEdit?: (task: Task) => void
   onDelete?: (task: Task) => void
   onComplete?: (task: Task) => void
+  onUncomplete?: (task: Task) => void
   onAddSubTask?: (task: Task) => void
 }
 
-function TaskCard({ task, onEdit, onDelete, onComplete, onAddSubTask }: TaskCardProps) {
+function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTask }: TaskCardProps) {
   const [showMenu, setShowMenu] = useState(false)
   
   const {
@@ -142,6 +143,7 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onAddSubTask }: TaskCard
             <h3 className={`text-sm font-medium line-clamp-2 pointer-events-none ${
               isCompleted ? 'text-green-800 line-through' : 'text-gray-900'
             }`}>
+              {task.parent_task_id && <span className="text-blue-600 mr-1">↳</span>}
               {task.title}
             </h3>
             {/* Sub-tasks indicator */}
@@ -160,7 +162,19 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onAddSubTask }: TaskCard
           
           {/* Action buttons - inline with 3-dots */}
           <div className="flex items-center space-x-1 pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity">
-            {!isCompleted && (
+            {isCompleted ? (
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  onUncomplete?.(task)
+                }}
+                className="p-1 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded transition-colors"
+                title="Mark as incomplete"
+              >
+                <Check className="w-4 h-4" />
+              </button>
+            ) : (
               <button
                 onClick={(e) => {
                   e.preventDefault()
@@ -276,10 +290,11 @@ interface ColumnProps {
   onEditTask: (task: Task) => void
   onDeleteTask: (task: Task) => void
   onCompleteTask: (task: Task) => void
+  onUncompleteTask: (task: Task) => void
   onAddSubTask: (task: Task) => void
 }
 
-function Column({ status, tasks, onAddTask, onEditTask, onDeleteTask, onCompleteTask, onAddSubTask }: ColumnProps) {
+function Column({ status, tasks, onAddTask, onEditTask, onDeleteTask, onCompleteTask, onUncompleteTask, onAddSubTask }: ColumnProps) {
   const {
     setNodeRef,
     isOver,
@@ -324,6 +339,7 @@ function Column({ status, tasks, onAddTask, onEditTask, onDeleteTask, onComplete
                 onEdit={onEditTask}
                 onDelete={onDeleteTask}
                 onComplete={onCompleteTask}
+                onUncomplete={onUncompleteTask}
                 onAddSubTask={onAddSubTask}
               />
             ))}
@@ -582,6 +598,26 @@ function BoardPageContent() {
     } catch (error) {
       console.error('Error completing task:', error)
       setError('Failed to mark task as complete. Please try again.')
+    }
+  }
+
+  const handleUncompleteTask = async (task: Task) => {
+    if (!selectedProject) return
+
+    try {
+      setError(null)
+      const { success, task: updatedTask } = await markTaskIncomplete(task.id, selectedProject.id)
+
+      if (success && updatedTask) {
+        // Refresh tasks to get updated data including parent task completion percentages
+        loadBoardData()
+        setSuccess('Task marked as incomplete!')
+      } else {
+        setError('Failed to mark task as incomplete. Please try again.')
+      }
+    } catch (error) {
+      console.error('Error uncompleting task:', error)
+      setError('Failed to mark task as incomplete. Please try again.')
     }
   }
 
@@ -873,6 +909,7 @@ function BoardPageContent() {
                 onEditTask={handleEditTask}
                 onDeleteTask={handleDeleteTask}
                 onCompleteTask={handleCompleteTask}
+                onUncompleteTask={handleUncompleteTask}
                 onAddSubTask={handleAddSubTask}
               />
             ))}
