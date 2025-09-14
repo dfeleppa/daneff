@@ -195,18 +195,18 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
       onPointerMove={handlePointerMove}
       className={`
         ${isSubTask 
-          ? 'bg-blue-50 rounded-md shadow-sm border-l-4 border-l-blue-400 border-t border-r border-b border-gray-200 p-3 mb-2 ml-4 mr-2' 
-          : 'bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-3'
+          ? 'bg-white/80 backdrop-blur-sm rounded-xl shadow-sm border-l-4 border-l-blue-400 border border-blue-100/50 p-4 mb-3 ml-6' 
+          : 'bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-6 transition-all duration-200'
         } 
-        hover:shadow-lg hover:border-gray-300 transition-all group relative 
+        hover:shadow-xl hover:border-gray-300/50 hover:-translate-y-1 transform group relative 
         ${isSubTask 
           ? 'cursor-pointer' // Sub-tasks are not draggable, only clickable
           : isPointerDown 
-            ? 'cursor-grabbing' 
-            : 'cursor-pointer'
+            ? 'cursor-grabbing shadow-2xl' 
+            : 'cursor-pointer hover:bg-white'
         }
-        ${isDragging ? 'opacity-50 cursor-grabbing' : ''} 
-        ${isCompleted ? (isSubTask ? 'bg-green-100 border-l-green-400' : 'bg-green-50 border-green-200') : ''}
+        ${isDragging ? 'opacity-60 cursor-grabbing shadow-2xl scale-105' : ''} 
+        ${isCompleted ? (isSubTask ? 'bg-green-50/80 border-l-green-400 border-green-100/50' : 'bg-green-50/90 border-green-200/50') : ''}
       `}
     >
       
@@ -235,32 +235,33 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
                   )}
                 </button>
               )}
-              <h3 className={`${isSubTask ? 'text-xs' : 'text-sm'} font-medium line-clamp-2 pointer-events-none ${
-                isCompleted ? 'text-green-800 line-through' : 'text-gray-900'
+              <h3 className={`${isSubTask ? 'text-sm' : 'text-base'} font-semibold line-clamp-2 pointer-events-none ${
+                isCompleted ? 'text-green-700 line-through' : 'text-gray-800'
               }`}>
-                {isSubTask && <span className="text-blue-600 mr-1 font-bold">↳</span>}
+                {isSubTask && <span className="text-blue-500 mr-2 font-bold text-lg">↳</span>}
                 {task.title}
               </h3>
             </div>
             {/* Sub-tasks indicator - only show on parent tasks */}
             {!isSubTask && task.sub_tasks && task.sub_tasks.length > 0 && (
-              <div className="flex items-center mt-1 text-xs text-gray-500">
-                <Users className="w-3 h-3 mr-1" />
-                {task.sub_tasks.length} sub-task{task.sub_tasks.length !== 1 ? 's' : ''}
+              <div className="flex items-center mt-3 text-sm text-gray-600">
+                <Users className="w-4 h-4 mr-2" />
+                <span className="font-medium">{task.sub_tasks.length}</span>
+                <span className="ml-1">sub-task{task.sub_tasks.length !== 1 ? 's' : ''}</span>
                 {task.completion_percentage !== undefined && (
-                  <span className="ml-1 text-blue-600 font-medium">
-                    ({task.completion_percentage}%)
+                  <span className="ml-3 text-blue-600 font-semibold bg-blue-50 px-2 py-1 rounded-lg text-xs">
+                    {task.completion_percentage}% complete
                   </span>
                 )}
                 {isCollapsed && (
-                  <span className="ml-2 text-xs text-gray-400">(collapsed)</span>
+                  <span className="ml-3 text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">collapsed</span>
                 )}
               </div>
             )}
             {/* Sub-task label */}
             {isSubTask && (
-              <div className="flex items-center mt-1">
-                <span className="text-xs text-blue-600 font-medium bg-blue-100 px-2 py-0.5 rounded-full">
+              <div className="flex items-center mt-2">
+                <span className="text-xs text-blue-600 font-semibold bg-blue-100/70 px-3 py-1.5 rounded-full">
                   Sub-task
                 </span>
               </div>
@@ -439,70 +440,107 @@ function Column({ status, tasks, onAddTask, onEditTask, onDeleteTask, onComplete
     id: `column-${status.id}`,
   })
 
-  // Determine column background color based on status name
-  const getColumnColor = (statusName: string) => {
+  // Determine column styling based on status name
+  const getColumnStyle = (statusName: string) => {
     const name = statusName.toLowerCase()
     if (name.includes('to do') || name.includes('todo') || name.includes('backlog')) {
-      return 'bg-slate-100'
+      return {
+        bg: 'bg-gradient-to-b from-slate-50 to-slate-100/50',
+        border: 'border-slate-200',
+        header: 'bg-slate-100/60'
+      }
     } else if (name.includes('progress') || name.includes('doing') || name.includes('active')) {
-      return 'bg-yellow-100'
+      return {
+        bg: 'bg-gradient-to-b from-blue-50 to-blue-100/50',
+        border: 'border-blue-200',
+        header: 'bg-blue-100/60'
+      }
     } else if (name.includes('review') || name.includes('testing') || name.includes('qa')) {
-      return 'bg-orange-100'
+      return {
+        bg: 'bg-gradient-to-b from-amber-50 to-amber-100/50',
+        border: 'border-amber-200',
+        header: 'bg-amber-100/60'
+      }
     } else if (name.includes('done') || name.includes('complete') || name.includes('finished')) {
-      return 'bg-green-100'
+      return {
+        bg: 'bg-gradient-to-b from-green-50 to-green-100/50',
+        border: 'border-green-200',
+        header: 'bg-green-100/60'
+      }
     } else {
-      return 'bg-gray-100'
+      return {
+        bg: 'bg-gradient-to-b from-gray-50 to-gray-100/50',
+        border: 'border-gray-200',
+        header: 'bg-gray-100/60'
+      }
     }
   }
 
-  const columnBgColor = getColumnColor(status.name)
+  const columnStyle = getColumnStyle(status.name)
 
   return (
-    <div className="flex-shrink-0 w-72">
+    <div className="flex-shrink-0 w-80">
       <div 
         ref={setNodeRef}
-        className={`${columnBgColor} rounded-lg p-4 transition-colors border border-gray-200 ${
-          isOver ? 'ring-2 ring-blue-300 bg-blue-50' : ''
+        className={`${columnStyle.bg} ${columnStyle.border} rounded-2xl border-2 transition-all duration-200 shadow-sm backdrop-blur-sm ${
+          isOver ? 'ring-4 ring-blue-400/30 shadow-lg scale-105 transform' : ''
         }`}
       >
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-2">
-            <div
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: status.color }}
-            ></div>
-            <h2 className="font-medium text-gray-900">{status.name}</h2>
-            <span className="text-sm text-gray-500">({tasks.length})</span>
+        <div className={`${columnStyle.header} rounded-t-2xl px-6 py-4 border-b ${columnStyle.border}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div
+                className="w-4 h-4 rounded-full shadow-sm border-2 border-white/50"
+                style={{ backgroundColor: status.color }}
+              ></div>
+              <h2 className="font-semibold text-gray-800 text-lg">{status.name}</h2>
+              <span className="text-sm text-gray-500 bg-white/60 px-2.5 py-1 rounded-full font-medium">
+                {tasks.length}
+              </span>
+            </div>
+            <button
+              onClick={() => onAddTask(status.id)}
+              className="text-gray-500 hover:text-gray-700 hover:bg-white/50 p-2 rounded-lg transition-all duration-200"
+              title="Add new task"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
           </div>
-          <button
-            onClick={() => onAddTask(status.id)}
-            className="text-gray-400 hover:text-gray-600"
-          >
-            <Plus className="w-4 h-4" />
-          </button>
         </div>
 
-        <SortableContext
-          items={tasks.map(task => task.id)}
-          strategy={verticalListSortingStrategy}
-        >
-          <div className="space-y-2 min-h-24">
-            {tasks.map((task) => (
-              <TaskCard 
-                key={task.id} 
-                task={task} 
-                onEdit={onEditTask}
-                onDelete={onDeleteTask}
-                onComplete={onCompleteTask}
-                onUncomplete={onUncompleteTask}
-                onAddSubTask={onAddSubTask}
-                onToggleCollapse={onToggleCollapse}
-                isCollapsed={collapsedTasks.has(task.id)}
-                isHidden={task.parent_task_id ? collapsedTasks.has(task.parent_task_id) : false}
-              />
-            ))}
-          </div>
-        </SortableContext>
+        <div className="p-6">
+          <SortableContext
+            items={tasks.map(task => task.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-3 min-h-32">
+              {tasks.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-gray-400 mb-3">
+                    <Plus className="w-12 h-12 mx-auto opacity-30" />
+                  </div>
+                  <p className="text-gray-500 text-sm font-medium">No tasks yet</p>
+                  <p className="text-gray-400 text-xs mt-1">Click the + button to add a task</p>
+                </div>
+              ) : (
+                tasks.map((task) => (
+                  <TaskCard 
+                    key={task.id} 
+                    task={task} 
+                    onEdit={onEditTask}
+                    onDelete={onDeleteTask}
+                    onComplete={onCompleteTask}
+                    onUncomplete={onUncompleteTask}
+                    onAddSubTask={onAddSubTask}
+                    onToggleCollapse={onToggleCollapse}
+                    isCollapsed={collapsedTasks.has(task.id)}
+                    isHidden={task.parent_task_id ? collapsedTasks.has(task.parent_task_id) : false}
+                  />
+                ))
+              )}
+            </div>
+          </SortableContext>
+        </div>
       </div>
     </div>
   )
@@ -1012,26 +1050,26 @@ function BoardPageContent() {
   })
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
+      <header className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-20">
             <div className="flex items-center">
-              <Link href="/" className="text-2xl font-bold text-blue-600 mr-8">
+              <Link href="/" className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mr-12">
                 TaskFlow
               </Link>
-              <nav className="hidden md:flex md:space-x-8">
-                <Link href="/" className="text-gray-500 hover:text-blue-600 px-3 py-2 text-sm font-medium">
+              <nav className="hidden md:flex md:space-x-1">
+                <Link href="/" className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200">
                   Dashboard
                 </Link>
-                <Link href="/projects" className="text-gray-500 hover:text-blue-600 px-3 py-2 text-sm font-medium">
+                <Link href="/projects" className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200">
                   Projects
                 </Link>
-                <Link href="/board" className="text-gray-900 hover:text-blue-600 px-3 py-2 text-sm font-medium">
+                <Link href="/board" className="text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 shadow-sm">
                   Board
                 </Link>
-                <Link href="/gantt" className="text-gray-500 hover:text-blue-600 px-3 py-2 text-sm font-medium">
+                <Link href="/gantt" className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200">
                   Gantt
                 </Link>
               </nav>
@@ -1044,7 +1082,7 @@ function BoardPageContent() {
                   const project = projects.find(p => p.id === e.target.value)
                   setSelectedProject(project || null)
                 }}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 shadow-sm"
               >
                 {projects.map(project => (
                   <option key={project.id} value={project.id}>{project.name}</option>
@@ -1052,7 +1090,7 @@ function BoardPageContent() {
               </select>
               <button
                 onClick={() => handleAddTask(taskStatuses[0]?.id)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm flex items-center"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-2.5 rounded-xl hover:from-blue-700 hover:to-indigo-700 text-sm font-medium flex items-center transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 New Task
@@ -1063,49 +1101,53 @@ function BoardPageContent() {
       </header>
 
       {/* Board Content */}
-      <main className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-full mx-auto px-6 sm:px-8 lg:px-10 py-10">
         {/* Error and Success Messages */}
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="mb-8 bg-red-50/80 backdrop-blur-sm border border-red-200/50 rounded-2xl p-6 shadow-sm">
             <div className="flex">
               <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <svg className="h-6 w-6 text-red-500" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
               </div>
-              <div className="ml-3">
-                <p className="text-sm text-red-800">{error}</p>
+              <div className="ml-4">
+                <p className="text-red-800 font-medium">{error}</p>
               </div>
             </div>
           </div>
         )}
 
         {success && (
-          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="mb-8 bg-green-50/80 backdrop-blur-sm border border-green-200/50 rounded-2xl p-6 shadow-sm">
             <div className="flex">
               <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                <svg className="h-6 w-6 text-green-500" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
               </div>
-              <div className="ml-3">
-                <p className="text-sm text-green-800">{success}</p>
+              <div className="ml-4">
+                <p className="text-green-800 font-medium">{success}</p>
               </div>
             </div>
           </div>
         )}
         
-        <div className="mb-6 flex items-center space-x-4">
-          <Link
-            href="/projects"
-            className="text-gray-500 hover:text-gray-700 flex items-center"
-          >
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            Back to Projects
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">{selectedProject.name}</h1>
-            <p className="text-gray-600">{selectedProject.description || 'No description'}</p>
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <Link
+                href="/projects"
+                className="text-gray-500 hover:text-blue-600 flex items-center mb-4 transition-colors font-medium"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Projects
+              </Link>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-2">
+                {selectedProject.name}
+              </h1>
+              <p className="text-gray-600 text-lg">{selectedProject.description || 'No description'}</p>
+            </div>
           </div>
         </div>
 
@@ -1115,7 +1157,7 @@ function BoardPageContent() {
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex space-x-6 overflow-x-auto pb-4">
+          <div className="flex space-x-8 overflow-x-auto pb-8">
             {statusColumns.map(({ status, tasks }) => (
               <Column
                 key={status.id}
