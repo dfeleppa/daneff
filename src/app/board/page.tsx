@@ -25,7 +25,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Calendar, MoreHorizontal, Plus, ArrowLeft, Trash2, Check, Users } from 'lucide-react'
+import { Calendar, MoreHorizontal, Plus, ArrowLeft, Trash2, Check, Users, ChevronDown, ChevronRight } from 'lucide-react'
 import { getUserWorkspaces } from '@/lib/api/users'
 import { getProjects, getProjectTasks, getTaskStatuses, updateTask, createTask, deleteTask, markTaskComplete, markTaskIncomplete, createSubTask } from '@/lib/api/projects'
 
@@ -83,9 +83,12 @@ interface TaskCardProps {
   onComplete?: (task: Task) => void
   onUncomplete?: (task: Task) => void
   onAddSubTask?: (task: Task) => void
+  onToggleCollapse?: (task: Task) => void
+  isCollapsed?: boolean
+  isHidden?: boolean
 }
 
-function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTask }: TaskCardProps) {
+function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTask, onToggleCollapse, isCollapsed, isHidden }: TaskCardProps) {
   const [showMenu, setShowMenu] = useState(false)
   const [isPointerDown, setIsPointerDown] = useState(false)
   const [dragStartTime, setDragStartTime] = useState(0)
@@ -118,6 +121,11 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
   const isSubTask = !!task.parent_task_id
   const isCompleted = task.status?.name.toLowerCase().includes('done') || 
                      task.status?.name.toLowerCase().includes('complete')
+
+  // Don't render if this task should be hidden due to collapsed parent
+  if (isHidden) {
+    return null
+  }
 
   // Custom pointer event handlers for click vs drag detection
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -200,12 +208,35 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
       <div className="relative z-20">
         <div className="flex justify-between items-start mb-2">
           <div className="flex-1 mr-2">
-            <h3 className={`${isSubTask ? 'text-xs' : 'text-sm'} font-medium line-clamp-2 pointer-events-none ${
-              isCompleted ? 'text-green-800 line-through' : 'text-gray-900'
-            }`}>
-              {isSubTask && <span className="text-blue-600 mr-1 font-bold">↳</span>}
-              {task.title}
-            </h3>
+            <div className="flex items-center">
+              {/* Collapse/Expand button for parent tasks */}
+              {!isSubTask && task.sub_tasks && task.sub_tasks.length > 0 && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    onToggleCollapse?.(task)
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className="mr-2 p-0.5 hover:bg-gray-200 rounded transition-colors"
+                  data-action-button
+                  title={isCollapsed ? 'Expand sub-tasks' : 'Collapse sub-tasks'}
+                >
+                  {isCollapsed ? (
+                    <ChevronRight className="w-3 h-3 text-gray-500" />
+                  ) : (
+                    <ChevronDown className="w-3 h-3 text-gray-500" />
+                  )}
+                </button>
+              )}
+              <h3 className={`${isSubTask ? 'text-xs' : 'text-sm'} font-medium line-clamp-2 pointer-events-none ${
+                isCompleted ? 'text-green-800 line-through' : 'text-gray-900'
+              }`}>
+                {isSubTask && <span className="text-blue-600 mr-1 font-bold">↳</span>}
+                {task.title}
+              </h3>
+            </div>
             {/* Sub-tasks indicator - only show on parent tasks */}
             {!isSubTask && task.sub_tasks && task.sub_tasks.length > 0 && (
               <div className="flex items-center mt-1 text-xs text-gray-500">
@@ -215,6 +246,9 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
                   <span className="ml-1 text-blue-600 font-medium">
                     ({task.completion_percentage}%)
                   </span>
+                )}
+                {isCollapsed && (
+                  <span className="ml-2 text-xs text-gray-400">(collapsed)</span>
                 )}
               </div>
             )}
@@ -388,9 +422,11 @@ interface ColumnProps {
   onCompleteTask: (task: Task) => void
   onUncompleteTask: (task: Task) => void
   onAddSubTask: (task: Task) => void
+  onToggleCollapse: (task: Task) => void
+  collapsedTasks: Set<string>
 }
 
-function Column({ status, tasks, onAddTask, onEditTask, onDeleteTask, onCompleteTask, onUncompleteTask, onAddSubTask }: ColumnProps) {
+function Column({ status, tasks, onAddTask, onEditTask, onDeleteTask, onCompleteTask, onUncompleteTask, onAddSubTask, onToggleCollapse, collapsedTasks }: ColumnProps) {
   const {
     setNodeRef,
     isOver,
@@ -455,6 +491,9 @@ function Column({ status, tasks, onAddTask, onEditTask, onDeleteTask, onComplete
                 onComplete={onCompleteTask}
                 onUncomplete={onUncompleteTask}
                 onAddSubTask={onAddSubTask}
+                onToggleCollapse={onToggleCollapse}
+                isCollapsed={collapsedTasks.has(task.id)}
+                isHidden={task.parent_task_id ? collapsedTasks.has(task.parent_task_id) : false}
               />
             ))}
           </div>
@@ -473,6 +512,7 @@ function BoardPageContent() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [tasks, setTasks] = useState<Task[]>([])
   const [taskStatuses, setTaskStatuses] = useState<TaskStatus[]>([])
+  const [collapsedTasks, setCollapsedTasks] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [showNewTaskModal, setShowNewTaskModal] = useState(false)
   const [showEditTaskModal, setShowEditTaskModal] = useState(false)
@@ -626,40 +666,71 @@ function BoardPageContent() {
       targetStatusName: targetStatus.name
     })
 
-    // Optimistically update the UI
-    setTasks(prevTasks => prevTasks.map(task => 
-      task.id === activeTask.id 
+    // Find all tasks that need to be moved (parent + sub-tasks)
+    const tasksToMove: Task[] = []
+    
+    if (!activeTask.parent_task_id) {
+      // Moving a parent task - include all its sub-tasks
+      tasksToMove.push(activeTask)
+      const subTasks = tasks.filter(task => task.parent_task_id === activeTask.id)
+      tasksToMove.push(...subTasks)
+    } else {
+      // Moving a sub-task - only move the sub-task itself
+      tasksToMove.push(activeTask)
+    }
+
+    console.log('Moving tasks:', {
+      parentTask: activeTask.title,
+      tasksToMove: tasksToMove.length,
+      fromStatus: activeTask.status_id,
+      toStatus: targetStatusId,
+      targetStatusName: targetStatus.name
+    })
+
+    // Optimistically update the UI for all tasks
+    setTasks(prevTasks => prevTasks.map(task => {
+      const taskToMove = tasksToMove.find(t => t.id === task.id)
+      return taskToMove 
         ? { ...task, status_id: targetStatusId, status: targetStatus }
         : task
-    ))
+    }))
 
-    // Update task status in database
+    // Update all tasks in database
     try {
-      const { task: updatedTask, error } = await updateTask(activeTask.id, {
-        status_id: targetStatusId
-      })
-
-      if (error) {
-        console.error('Error updating task status:', error)
-        // Revert optimistic update
-        setTasks(prevTasks => prevTasks.map(task => 
-          task.id === activeTask.id 
+      const updatePromises = tasksToMove.map(task => 
+        updateTask(task.id, { status_id: targetStatusId })
+      )
+      
+      const results = await Promise.all(updatePromises)
+      
+      // Check if any updates failed
+      const failedUpdates = results.filter(result => result.error)
+      if (failedUpdates.length > 0) {
+        console.error('Some task updates failed:', failedUpdates)
+        // Revert optimistic updates for failed tasks
+        setTasks(prevTasks => prevTasks.map(task => {
+          const failedTask = failedUpdates.find(result => 
+            result.error && tasksToMove.find(t => t.id === task.id)
+          )
+          return failedTask 
             ? { ...task, status_id: activeTask.status_id, status: activeTask.status }
             : task
-        ))
-        setError('Failed to update task status. Please try again.')
-      } else if (updatedTask) {
-        console.log('Task status updated successfully:', updatedTask)
-        setSuccess(`Task moved to ${targetStatus.name}!`)
+        }))
+        setError('Failed to update some tasks. Please try again.')
+      } else {
+        console.log('All tasks moved successfully')
+        const taskCount = tasksToMove.length
+        setSuccess(`${taskCount} task${taskCount !== 1 ? 's' : ''} moved to ${targetStatus.name}!`)
       }
     } catch (error) {
-      console.error('Error updating task status:', error)
-      // Revert optimistic update
-      setTasks(prevTasks => prevTasks.map(task => 
-        task.id === activeTask.id 
+      console.error('Error updating task statuses:', error)
+      // Revert all optimistic updates
+      setTasks(prevTasks => prevTasks.map(task => {
+        const taskToMove = tasksToMove.find(t => t.id === task.id)
+        return taskToMove 
           ? { ...task, status_id: activeTask.status_id, status: activeTask.status }
           : task
-      ))
+      }))
       setError('Failed to update task status. Please try again.')
     }
   }
@@ -738,6 +809,18 @@ function BoardPageContent() {
   const handleAddSubTask = (parentTask: Task) => {
     setParentTaskForSubTask(parentTask)
     setShowSubTaskModal(true)
+  }
+
+  const handleToggleCollapse = (task: Task) => {
+    setCollapsedTasks(prev => {
+      const newCollapsed = new Set(prev)
+      if (newCollapsed.has(task.id)) {
+        newCollapsed.delete(task.id)
+      } else {
+        newCollapsed.add(task.id)
+      }
+      return newCollapsed
+    })
   }
 
   const handleCreateTask = async (e: React.FormEvent) => {
@@ -903,11 +986,25 @@ function BoardPageContent() {
     )
   }
 
-  // Group tasks by status
-  const statusColumns = taskStatuses.map(status => ({
-    status,
-    tasks: tasks.filter(task => task.status_id === status.id)
-  }))
+  // Group tasks by status and handle collapsed state
+  const statusColumns = taskStatuses.map(status => {
+    const statusTasks = tasks.filter(task => task.status_id === status.id)
+    
+    // Filter out sub-tasks whose parents are collapsed
+    const visibleTasks = statusTasks.filter(task => {
+      // If it's a sub-task, check if parent is collapsed
+      if (task.parent_task_id) {
+        return !collapsedTasks.has(task.parent_task_id)
+      }
+      // Parent tasks are always visible
+      return true
+    })
+    
+    return {
+      status,
+      tasks: visibleTasks
+    }
+  })
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -1025,6 +1122,8 @@ function BoardPageContent() {
                 onCompleteTask={handleCompleteTask}
                 onUncompleteTask={handleUncompleteTask}
                 onAddSubTask={handleAddSubTask}
+                onToggleCollapse={handleToggleCollapse}
+                collapsedTasks={collapsedTasks}
               />
             ))}
           </div>
