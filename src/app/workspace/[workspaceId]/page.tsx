@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { getUserWorkspaces } from '@/lib/api/users'
 import { getProjects } from '@/lib/api/projects'
+import AppLayout from '@/components/AppLayout'
 
 interface Workspace {
   id: string
@@ -125,80 +126,50 @@ export default function WorkspacePage() {
   const completedProjects = projects.filter(p => p.status === 'completed')
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Header */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-gray-200/50 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Link
-                href="/"
-                className="text-gray-500 hover:text-blue-600 flex items-center transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5 mr-2" />
-                Workspaces
-              </Link>
-              <span className="text-gray-300">/</span>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                {workspace.name}
-              </h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              {session?.user && (
-                <div className="flex items-center space-x-3">
-                  {session.user.image ? (
-                    <img
-                      src={session.user.image}
-                      alt={session.user.name || 'User'}
-                      className="w-8 h-8 rounded-full"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                      <span className="text-white text-sm font-medium">
-                        {session.user.name?.charAt(0) || 'U'}
-                      </span>
-                    </div>
-                  )}
-                  <span className="text-gray-700 font-medium">{session.user.name}</span>
+    <AppLayout>
+      <div className="p-6">
+        <div className="max-w-6xl mx-auto">
+          {/* Workspace Info */}
+          <div className="mb-12">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <div className="flex items-center space-x-4 mb-4">
+                  <Link
+                    href="/"
+                    className="text-gray-500 hover:text-blue-600 flex items-center transition-colors"
+                  >
+                    <ArrowLeft className="w-5 h-5 mr-2" />
+                    Workspaces
+                  </Link>
+                  <span className="text-gray-300">/</span>
+                  <span className="text-gray-700 font-medium">{workspace.name}</span>
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-12">
-        {/* Workspace Info */}
-        <div className="mb-12">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-4xl font-bold text-gray-800 mb-2">
-                {workspace.name}
-              </h2>
-              {workspace.description && (
-                <p className="text-xl text-gray-600">{workspace.description}</p>
-              )}
-              <div className="flex items-center mt-4 text-sm text-gray-500 space-x-6">
-                <div className="flex items-center">
-                  <Users className="w-4 h-4 mr-1" />
-                  <span className="capitalize">{workspace.user_role}</span>
-                </div>
-                <div className="flex items-center">
-                  <Calendar className="w-4 h-4 mr-1" />
-                  <span>Created {new Date(workspace.created_at).toLocaleDateString()}</span>
+                <h2 className="text-4xl font-bold text-gray-800 mb-2">
+                  {workspace.name}
+                </h2>
+                {workspace.description && (
+                  <p className="text-xl text-gray-600">{workspace.description}</p>
+                )}
+                <div className="flex items-center mt-4 text-sm text-gray-500 space-x-6">
+                  <div className="flex items-center">
+                    <Users className="w-4 h-4 mr-1" />
+                    <span className="capitalize">{workspace.user_role}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Calendar className="w-4 h-4 mr-1" />
+                    <span>Created {new Date(workspace.created_at).toLocaleDateString()}</span>
+                  </div>
                 </div>
               </div>
+              <Link
+                href={`/workspace/${workspace.id}/projects/new`}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 font-medium flex items-center transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              >
+                <Plus className="w-5 h-5 mr-2" />
+                New Project
+              </Link>
             </div>
-            <Link
-              href={`/workspace/${workspace.id}/projects/new`}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 font-medium flex items-center transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              New Project
-            </Link>
           </div>
-        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
@@ -328,7 +299,8 @@ export default function WorkspacePage() {
             </div>
           )}
         </div>
-      </main>
-    </div>
+        </div>
+      </div>
+    </AppLayout>
   )
 }
