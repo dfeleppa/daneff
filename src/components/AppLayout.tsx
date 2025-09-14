@@ -100,7 +100,7 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
   }
 
   // Navigation based on current context
-  let navigation
+  let navigation: Array<{name: string, href: string, icon: any, current: boolean}>
   
   if (currentWorkspaceId && currentProjectId) {
     // Project level - show views
@@ -115,10 +115,8 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
       { name: 'Dashboard', href: `/workspace/${currentWorkspaceId}`, icon: Home, current: pathname === `/workspace/${currentWorkspaceId}` },
     ]
   } else {
-    // Home level - show workspace selection
-    navigation = [
-      { name: 'Workspaces', href: '/', icon: Building, current: pathname === '/' },
-    ]
+    // Home level - no navigation items (workspaces section handles this)
+    navigation = []
   }
 
   // Get current workspace and project names for display
