@@ -109,6 +109,7 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
     urgent: 'bg-red-100 text-red-800',
   }
 
+  const isSubTask = !!task.parent_task_id
   const isCompleted = task.status?.name.toLowerCase().includes('done') || 
                      task.status?.name.toLowerCase().includes('complete')
 
@@ -125,9 +126,15 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
     <div
       ref={setNodeRef}
       style={style}
-      className={`bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-3 hover:shadow-md transition-all group relative ${
-        isDragging ? 'opacity-50' : ''
-      } ${isCompleted ? 'bg-green-50 border-green-200' : ''}`}
+      className={`
+        ${isSubTask 
+          ? 'bg-blue-50 rounded-md shadow-sm border-l-4 border-l-blue-400 border-t border-r border-b border-gray-200 p-3 mb-2 ml-4 mr-2' 
+          : 'bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-3'
+        } 
+        hover:shadow-md transition-all group relative 
+        ${isDragging ? 'opacity-50' : ''} 
+        ${isCompleted ? (isSubTask ? 'bg-green-100 border-l-green-400' : 'bg-green-50 border-green-200') : ''}
+      `}
     >
       {/* Drag handle - separate from the menu and hover actions */}
       <div
@@ -140,14 +147,14 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
       <div className="relative z-10">
         <div className="flex justify-between items-start mb-2">
           <div className="flex-1 mr-2">
-            <h3 className={`text-sm font-medium line-clamp-2 pointer-events-none ${
+            <h3 className={`${isSubTask ? 'text-xs' : 'text-sm'} font-medium line-clamp-2 pointer-events-none ${
               isCompleted ? 'text-green-800 line-through' : 'text-gray-900'
             }`}>
-              {task.parent_task_id && <span className="text-blue-600 mr-1">↳</span>}
+              {isSubTask && <span className="text-blue-600 mr-1 font-bold">↳</span>}
               {task.title}
             </h3>
-            {/* Sub-tasks indicator */}
-            {task.sub_tasks && task.sub_tasks.length > 0 && (
+            {/* Sub-tasks indicator - only show on parent tasks */}
+            {!isSubTask && task.sub_tasks && task.sub_tasks.length > 0 && (
               <div className="flex items-center mt-1 text-xs text-gray-500">
                 <Users className="w-3 h-3 mr-1" />
                 {task.sub_tasks.length} sub-task{task.sub_tasks.length !== 1 ? 's' : ''}
@@ -158,9 +165,17 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
                 )}
               </div>
             )}
+            {/* Sub-task label */}
+            {isSubTask && (
+              <div className="flex items-center mt-1">
+                <span className="text-xs text-blue-600 font-medium bg-blue-100 px-2 py-0.5 rounded-full">
+                  Sub-task
+                </span>
+              </div>
+            )}
           </div>
           
-          {/* Action buttons - inline with 3-dots */}
+          {/* Action buttons - inline with 3-dots, smaller for sub-tasks */}
           <div className="flex items-center space-x-1 pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity">
             {isCompleted ? (
               <button
@@ -169,10 +184,10 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
                   e.stopPropagation()
                   onUncomplete?.(task)
                 }}
-                className="p-1 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded transition-colors"
+                className={`${isSubTask ? 'p-0.5' : 'p-1'} text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded transition-colors`}
                 title="Mark as incomplete"
               >
-                <Check className="w-4 h-4" />
+                <Check className={`${isSubTask ? 'w-3 h-3' : 'w-4 h-4'}`} />
               </button>
             ) : (
               <button
@@ -181,23 +196,26 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
                   e.stopPropagation()
                   onComplete?.(task)
                 }}
-                className="p-1 text-green-600 hover:text-green-700 hover:bg-green-50 rounded transition-colors"
+                className={`${isSubTask ? 'p-0.5' : 'p-1'} text-green-600 hover:text-green-700 hover:bg-green-50 rounded transition-colors`}
                 title="Mark as complete"
               >
-                <Check className="w-4 h-4" />
+                <Check className={`${isSubTask ? 'w-3 h-3' : 'w-4 h-4'}`} />
               </button>
             )}
-            <button
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                onAddSubTask?.(task)
-              }}
-              className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
-              title="Add sub-task"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
+            {/* Only show Add Sub-task button on parent tasks */}
+            {!isSubTask && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  onAddSubTask?.(task)
+                }}
+                className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+                title="Add sub-task"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            )}
             <div className="relative">
               <button
                 onClick={(e) => {
@@ -205,9 +223,9 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
                   e.stopPropagation()
                   setShowMenu(!showMenu)
                 }}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 transition-colors"
+                className={`text-gray-400 hover:text-gray-600 ${isSubTask ? 'p-0.5' : 'p-1'} rounded hover:bg-gray-100 transition-colors`}
               >
-                <MoreHorizontal className="w-4 h-4" />
+                <MoreHorizontal className={`${isSubTask ? 'w-3 h-3' : 'w-4 h-4'}`} />
               </button>
               
               {showMenu && (
@@ -242,19 +260,19 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
         </div>
 
         {task.description && (
-          <p className="text-xs text-gray-600 mb-3 line-clamp-2 pointer-events-none">
+          <p className={`${isSubTask ? 'text-xs' : 'text-xs'} text-gray-600 ${isSubTask ? 'mb-2' : 'mb-3'} line-clamp-2 pointer-events-none`}>
             {task.description}
           </p>
         )}
 
         <div className="flex items-center justify-between pointer-events-none">
           <div className="flex items-center space-x-2">
-            <span className={`px-2 py-1 rounded-full text-xs font-medium ${priorityColors[task.priority]}`}>
+            <span className={`${isSubTask ? 'px-1.5 py-0.5 text-xs' : 'px-2 py-1 text-xs'} rounded-full font-medium ${priorityColors[task.priority]}`}>
               {task.priority}
             </span>
             {task.due_date && (
-              <div className="flex items-center text-gray-500 text-xs">
-                <Calendar className="w-3 h-3 mr-1" />
+              <div className={`flex items-center text-gray-500 ${isSubTask ? 'text-xs' : 'text-xs'}`}>
+                <Calendar className={`${isSubTask ? 'w-2.5 h-2.5' : 'w-3 h-3'} mr-1`} />
                 {new Date(task.due_date).toLocaleDateString()}
               </div>
             )}
@@ -266,11 +284,11 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
                 <img
                   src={task.assignee.avatar_url}
                   alt={task.assignee.name}
-                  className="w-6 h-6 rounded-full"
+                  className={`${isSubTask ? 'w-5 h-5' : 'w-6 h-6'} rounded-full`}
                 />
               ) : (
-                <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
-                  <span className="text-xs font-medium text-white">
+                <div className={`${isSubTask ? 'w-5 h-5' : 'w-6 h-6'} bg-blue-600 rounded-full flex items-center justify-center`}>
+                  <span className={`${isSubTask ? 'text-xs' : 'text-xs'} font-medium text-white`}>
                     {task.assignee.name.charAt(0)}
                   </span>
                 </div>
