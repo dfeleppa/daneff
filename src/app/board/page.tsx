@@ -1051,27 +1051,46 @@ function BoardPageContent() {
   })
 
   const boardActions = (
-    <>
-      <select 
-        value={selectedProject.id}
-        onChange={(e) => {
-          const project = projects.find(p => p.id === e.target.value)
-          setSelectedProject(project || null)
-        }}
-        className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 shadow-sm"
-      >
-        {projects.map(project => (
-          <option key={project.id} value={project.id}>{project.name}</option>
-        ))}
-      </select>
-      <button
-        onClick={() => handleAddTask(taskStatuses[0]?.id)}
-        className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-2.5 rounded-xl hover:from-blue-700 hover:to-indigo-700 text-sm font-medium flex items-center transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-      >
-        <Plus className="w-4 h-4 mr-2" />
-        New Task
-      </button>
-    </>
+    <div className="flex items-center space-x-6">
+      <div className="flex items-center space-x-3">
+        <span className="px-4 py-2 text-blue-600 font-medium border-b-2 border-blue-600">
+          Board
+        </span>
+        <Link
+          href={`/list?project=${selectedProject.id}`}
+          className="px-4 py-2 text-gray-600 hover:text-blue-600 font-medium transition-colors"
+        >
+          List
+        </Link>
+        <Link
+          href={`/gantt?project=${selectedProject.id}`}
+          className="px-4 py-2 text-gray-600 hover:text-blue-600 font-medium transition-colors"
+        >
+          Gantt
+        </Link>
+      </div>
+      <div className="flex items-center space-x-3">
+        <select 
+          value={selectedProject.id}
+          onChange={(e) => {
+            const project = projects.find(p => p.id === e.target.value)
+            setSelectedProject(project || null)
+          }}
+          className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 shadow-sm"
+        >
+          {projects.map(project => (
+            <option key={project.id} value={project.id}>{project.name}</option>
+          ))}
+        </select>
+        <button
+          onClick={() => handleAddTask(taskStatuses[0]?.id)}
+          className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-2.5 rounded-xl hover:from-blue-700 hover:to-indigo-700 text-sm font-medium flex items-center transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          New Task
+        </button>
+      </div>
+    </div>
   )
 
   return (

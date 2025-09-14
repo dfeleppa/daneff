@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Home, Folder, Menu, ChevronLeft, X, Kanban, Calendar, ChevronDown, ChevronRight } from 'lucide-react'
+import { Home, Folder, Menu, ChevronLeft, X, Kanban, Calendar, List, ChevronDown, ChevronRight } from 'lucide-react'
 import { getUserWorkspaces } from '@/lib/api/users'
 import { getProjects } from '@/lib/api/projects'
 
@@ -54,6 +54,7 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home, current: pathname === '/' },
     { name: 'Board', href: '/board', icon: Kanban, current: pathname === '/board' || pathname?.startsWith('/board?') },
+    { name: 'List', href: '/list', icon: List, current: pathname === '/list' || pathname?.startsWith('/list?') },
     { name: 'Gantt', href: '/gantt', icon: Calendar, current: pathname === '/gantt' || pathname?.startsWith('/gantt?') },
   ]
 

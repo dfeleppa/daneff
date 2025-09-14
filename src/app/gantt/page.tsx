@@ -244,19 +244,38 @@ function GanttPageContent() {
   }
 
   const ganttActions = (
-    <select 
-      value={selectedProject?.id || ''}
-      onChange={(e) => {
-        const project = projects.find(p => p.id === e.target.value)
-        setSelectedProject(project || null)
-      }}
-      className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-    >
-      <option value="">Select Project</option>
-      {projects.map(project => (
-        <option key={project.id} value={project.id}>{project.name}</option>
-      ))}
-    </select>
+    <div className="flex items-center space-x-6">
+      <div className="flex items-center space-x-3">
+        <Link
+          href={`/board?project=${selectedProject?.id}`}
+          className="px-4 py-2 text-gray-600 hover:text-blue-600 font-medium transition-colors"
+        >
+          Board
+        </Link>
+        <Link
+          href={`/list?project=${selectedProject?.id}`}
+          className="px-4 py-2 text-gray-600 hover:text-blue-600 font-medium transition-colors"
+        >
+          List
+        </Link>
+        <span className="px-4 py-2 text-blue-600 font-medium border-b-2 border-blue-600">
+          Gantt
+        </span>
+      </div>
+      <select 
+        value={selectedProject?.id || ''}
+        onChange={(e) => {
+          const project = projects.find(p => p.id === e.target.value)
+          setSelectedProject(project || null)
+        }}
+        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      >
+        <option value="">Select Project</option>
+        {projects.map(project => (
+          <option key={project.id} value={project.id}>{project.name}</option>
+        ))}
+      </select>
+    </div>
   )
 
   return (
