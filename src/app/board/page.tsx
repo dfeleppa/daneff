@@ -94,6 +94,10 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
   const [dragStartTime, setDragStartTime] = useState(0)
   const [startCoords, setStartCoords] = useState({ x: 0, y: 0 })
   
+  const isSubTask = !!task.parent_task_id
+  const isCompleted = task.status?.name.toLowerCase().includes('done') || 
+                     task.status?.name.toLowerCase().includes('complete')
+  
   const {
     attributes,
     listeners,
@@ -103,7 +107,7 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
     isDragging,
   } = useSortable({ 
     id: task.id,
-    disabled: false
+    disabled: isSubTask // Disable dragging for sub-tasks
   })
 
   const style = {
@@ -117,10 +121,6 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
     high: 'bg-orange-100 text-orange-800',
     urgent: 'bg-red-100 text-red-800',
   }
-
-  const isSubTask = !!task.parent_task_id
-  const isCompleted = task.status?.name.toLowerCase().includes('done') || 
-                     task.status?.name.toLowerCase().includes('complete')
 
   // Don't render if this task should be hidden due to collapsed parent
   if (isHidden) {
@@ -199,7 +199,12 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
           : 'bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-3'
         } 
         hover:shadow-lg hover:border-gray-300 transition-all group relative 
-        ${isPointerDown ? 'cursor-grabbing' : 'cursor-pointer'}
+        ${isSubTask 
+          ? 'cursor-pointer' // Sub-tasks are not draggable, only clickable
+          : isPointerDown 
+            ? 'cursor-grabbing' 
+            : 'cursor-pointer'
+        }
         ${isDragging ? 'opacity-50 cursor-grabbing' : ''} 
         ${isCompleted ? (isSubTask ? 'bg-green-100 border-l-green-400' : 'bg-green-50 border-green-200') : ''}
       `}
