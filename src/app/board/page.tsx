@@ -1020,10 +1020,10 @@ function BoardPageContent() {
           <h1 className="text-2xl font-bold text-gray-900 mb-4">No Project Selected</h1>
           <p className="text-gray-600 mb-4">Please select a project to view its board.</p>
           <Link
-            href="/projects"
+            href="/"
             className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
           >
-            Go to Projects
+            Go to Workspaces
           </Link>
         </div>
       </div>
@@ -1132,11 +1132,11 @@ function BoardPageContent() {
           <div className="flex items-center justify-between">
             <div>
               <Link
-                href="/projects"
+                href="/"
                 className="text-gray-500 hover:text-blue-600 flex items-center mb-4 transition-colors font-medium"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Projects
+                Back to Workspaces
               </Link>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-2">
                 {selectedProject.name}

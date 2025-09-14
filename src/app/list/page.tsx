@@ -247,10 +247,10 @@ function ListPageContent() {
           <div className="text-center">
             <p className="text-gray-600 mb-4">No project selected</p>
             <Link
-              href="/projects"
+              href="/"
               className="text-blue-600 hover:text-blue-800 underline"
             >
-              Go to Projects
+              Go to Workspaces
             </Link>
           </div>
         </div>
@@ -326,11 +326,11 @@ function ListPageContent() {
         <div className="flex items-center justify-between">
           <div>
             <Link
-              href="/projects"
+              href="/"
               className="text-gray-500 hover:text-blue-600 flex items-center mb-4 transition-colors font-medium"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Projects
+              Back to Workspaces
             </Link>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-2">
               {selectedProject.name}

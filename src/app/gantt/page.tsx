@@ -233,10 +233,10 @@ function GanttPageContent() {
           <h1 className="text-2xl font-bold text-gray-900 mb-4">No Project Selected</h1>
           <p className="text-gray-600 mb-4">Please select a project to view its Gantt chart.</p>
           <Link
-            href="/projects"
+            href="/"
             className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
           >
-            Go to Projects
+            Go to Workspaces
           </Link>
         </div>
       </div>
@@ -303,11 +303,11 @@ function GanttPageContent() {
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Link
-              href="/projects"
+              href="/"
               className="text-gray-500 hover:text-gray-700 flex items-center"
             >
               <ArrowLeft className="w-4 h-4 mr-1" />
-              Back to Projects
+              Back to Workspaces
             </Link>
             <div>
               <h1 className="text-2xl font-bold text-gray-900 mb-1 flex items-center">
