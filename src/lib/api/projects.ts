@@ -259,8 +259,48 @@ export async function getProjectTasks(projectId: string) {
       }
     })
 
-    console.log('✅ Tasks fetched successfully:', allTasks.length, 'total tasks')
-    return { tasks: allTasks, error: null }
+    // Sort tasks so parent tasks appear before their sub-tasks
+    const sortedTasks = allTasks.sort((a, b) => {
+      // If both tasks have no parent, sort by created_at (newest first)
+      if (!a.parent_task_id && !b.parent_task_id) {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      }
+      
+      // If one is a parent and one is a sub-task
+      if (!a.parent_task_id && b.parent_task_id) {
+        // If a is the parent of b, a should come first
+        if (a.id === b.parent_task_id) return -1
+        // Otherwise, sort by created_at
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      }
+      
+      if (a.parent_task_id && !b.parent_task_id) {
+        // If b is the parent of a, b should come first
+        if (b.id === a.parent_task_id) return 1
+        // Otherwise, sort by created_at
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      }
+      
+      // If both are sub-tasks
+      if (a.parent_task_id && b.parent_task_id) {
+        // If they have the same parent, sort by created_at
+        if (a.parent_task_id === b.parent_task_id) {
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        }
+        // If different parents, sort by parent's created_at
+        const parentA = allTasks.find(t => t.id === a.parent_task_id)
+        const parentB = allTasks.find(t => t.id === b.parent_task_id)
+        if (parentA && parentB) {
+          return new Date(parentB.created_at).getTime() - new Date(parentA.created_at).getTime()
+        }
+      }
+      
+      // Default: sort by created_at (newest first)
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    })
+
+    console.log('✅ Tasks fetched successfully:', sortedTasks.length, 'total tasks')
+    return { tasks: sortedTasks, error: null }
   } catch (error: any) {
     console.error('Exception in getProjectTasks:', error)
     return { tasks: [], error }
