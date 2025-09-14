@@ -25,7 +25,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Calendar, MoreHorizontal, Plus, ArrowLeft, Trash2, Check, Users, ChevronDown, ChevronRight } from 'lucide-react'
+import { Calendar, MoreHorizontal, Plus, ArrowLeft, Trash2, Check, Users, ChevronDown, ChevronRight, Home, Folder, BarChart3, Settings, User, ChevronLeft, Menu } from 'lucide-react'
 import { getUserWorkspaces } from '@/lib/api/users'
 import { getProjects, getProjectTasks, getTaskStatuses, updateTask, createTask, deleteTask, markTaskComplete, markTaskIncomplete, createSubTask } from '@/lib/api/projects'
 
@@ -567,6 +567,7 @@ function BoardPageContent() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [activeTask, setActiveTask] = useState<Task | null>(null)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
@@ -1051,54 +1052,123 @@ function BoardPageContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <div className="flex items-center">
-              <Link href="/" className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mr-12">
+      {/* Sidebar */}
+      <div className={`fixed left-0 top-0 h-full bg-white/95 backdrop-blur-md border-r border-gray-200/50 transition-all duration-300 z-40 ${sidebarCollapsed ? 'w-16' : 'w-72'}`}>
+        <div className="flex flex-col h-full">
+          {/* Sidebar Header */}
+          <div className="flex items-center justify-between p-6 border-b border-gray-200/50">
+            {!sidebarCollapsed && (
+              <Link href="/" className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                 TaskFlow
               </Link>
-              <nav className="hidden md:flex md:space-x-1">
-                <Link href="/" className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200">
-                  Dashboard
-                </Link>
-                <Link href="/projects" className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200">
-                  Projects
-                </Link>
-                <Link href="/board" className="text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 shadow-sm">
-                  Board
-                </Link>
-                <Link href="/gantt" className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200">
-                  Gantt
-                </Link>
-              </nav>
+            )}
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              {sidebarCollapsed ? <Menu className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+            </button>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 p-4">
+            <div className="space-y-2">
+              <Link
+                href="/"
+                className="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all"
+              >
+                <Home className="w-5 h-5" />
+                {!sidebarCollapsed && <span className="font-medium">Dashboard</span>}
+              </Link>
+              <Link
+                href="/projects"
+                className="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all"
+              >
+                <Folder className="w-5 h-5" />
+                {!sidebarCollapsed && <span className="font-medium">Projects</span>}
+              </Link>
+              <Link
+                href="/board"
+                className="flex items-center space-x-3 px-3 py-2 rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-sm"
+              >
+                <BarChart3 className="w-5 h-5" />
+                {!sidebarCollapsed && <span className="font-medium">Board</span>}
+              </Link>
+              <Link
+                href="/gantt"
+                className="flex items-center space-x-3 px-3 py-2 rounded-lg text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all"
+              >
+                <Calendar className="w-5 h-5" />
+                {!sidebarCollapsed && <span className="font-medium">Gantt</span>}
+              </Link>
             </div>
-            
-            <div className="flex items-center space-x-4">
-              <select 
-                value={selectedProject.id}
-                onChange={(e) => {
-                  const project = projects.find(p => p.id === e.target.value)
-                  setSelectedProject(project || null)
-                }}
-                className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 shadow-sm"
-              >
-                {projects.map(project => (
-                  <option key={project.id} value={project.id}>{project.name}</option>
-                ))}
-              </select>
-              <button
-                onClick={() => handleAddTask(taskStatuses[0]?.id)}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-2.5 rounded-xl hover:from-blue-700 hover:to-indigo-700 text-sm font-medium flex items-center transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                New Task
-              </button>
+
+            {/* Project Switcher */}
+            {!sidebarCollapsed && (
+              <div className="mt-8">
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Current Project</h3>
+                <select 
+                  value={selectedProject.id}
+                  onChange={(e) => {
+                    const project = projects.find(p => p.id === e.target.value)
+                    setSelectedProject(project || null)
+                  }}
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 shadow-sm"
+                >
+                  {projects.map(project => (
+                    <option key={project.id} value={project.id}>{project.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Quick Actions */}
+            {!sidebarCollapsed && (
+              <div className="mt-8">
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Quick Actions</h3>
+                <button
+                  onClick={() => handleAddTask(taskStatuses[0]?.id)}
+                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 text-sm font-medium flex items-center justify-center transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Task
+                </button>
+              </div>
+            )}
+          </nav>
+
+          {/* User Info */}
+          <div className="p-4 border-t border-gray-200/50">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+                <User className="w-5 h-5 text-white" />
+              </div>
+              {!sidebarCollapsed && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800 truncate">{session?.user?.name || 'User'}</p>
+                  <p className="text-xs text-gray-500 truncate">{session?.user?.email}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
-      </header>
+      </div>
+
+      {/* Main Content */}
+      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-72'}`}>
+        {/* Header */}
+        <header className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 sticky top-0 z-30">
+          <div className="px-6 sm:px-8 lg:px-10">
+            <div className="flex justify-between items-center h-20">
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                  {selectedProject.name}
+                </h1>
+                <p className="text-gray-600 text-sm mt-1">{selectedProject.description || 'No description'}</p>
+              </div>
+            </div>
+          </div>
+        </header>
 
       {/* Board Content */}
       <main className="max-w-full mx-auto px-6 sm:px-8 lg:px-10 py-10">
@@ -1457,6 +1527,8 @@ function BoardPageContent() {
           </div>
         </div>
       )}
+        </main>
+      </div>
     </div>
   )
 }
