@@ -113,6 +113,16 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
   const isCompleted = task.status?.name.toLowerCase().includes('done') || 
                      task.status?.name.toLowerCase().includes('complete')
 
+  // Handle card click for editing
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't trigger if clicking on action buttons or menu
+    if ((e.target as HTMLElement).closest('[data-action-button]') || 
+        (e.target as HTMLElement).closest('[data-menu]')) {
+      return
+    }
+    onEdit?.(task)
+  }
+
   // Close menu when clicking outside
   useEffect(() => {
     if (showMenu) {
@@ -131,20 +141,27 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
           ? 'bg-blue-50 rounded-md shadow-sm border-l-4 border-l-blue-400 border-t border-r border-b border-gray-200 p-3 mb-2 ml-4 mr-2' 
           : 'bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-3'
         } 
-        hover:shadow-md transition-all group relative 
+        hover:shadow-lg hover:border-gray-300 transition-all group relative cursor-pointer
         ${isDragging ? 'opacity-50' : ''} 
         ${isCompleted ? (isSubTask ? 'bg-green-100 border-l-green-400' : 'bg-green-50 border-green-200') : ''}
       `}
+      onClick={handleCardClick}
     >
       {/* Drag handle - separate from the menu and hover actions */}
       <div
         {...attributes}
         {...listeners}
-        className="absolute inset-0 cursor-grab active:cursor-grabbing z-0"
+        className="absolute inset-0 cursor-grab active:cursor-grabbing z-10"
         style={{ pointerEvents: showMenu ? 'none' : 'auto' }}
       />
       
-      <div className="relative z-10">
+      {/* Click overlay for editing */}
+      <div 
+        className="absolute inset-0 z-5 cursor-pointer"
+        onClick={handleCardClick}
+      />
+      
+      <div className="relative z-20">
         <div className="flex justify-between items-start mb-2">
           <div className="flex-1 mr-2">
             <h3 className={`${isSubTask ? 'text-xs' : 'text-sm'} font-medium line-clamp-2 pointer-events-none ${
@@ -176,7 +193,10 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
           </div>
           
           {/* Action buttons - inline with 3-dots, smaller for sub-tasks */}
-          <div className="flex items-center space-x-1 pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity">
+          <div 
+            className="flex items-center space-x-1 pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity"
+            data-action-button
+          >
             {isCompleted ? (
               <button
                 onClick={(e) => {
@@ -186,6 +206,7 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
                 }}
                 className={`${isSubTask ? 'p-0.5' : 'p-1'} text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded transition-colors`}
                 title="Mark as incomplete"
+                data-action-button
               >
                 <Check className={`${isSubTask ? 'w-3 h-3' : 'w-4 h-4'}`} />
               </button>
@@ -198,6 +219,7 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
                 }}
                 className={`${isSubTask ? 'p-0.5' : 'p-1'} text-green-600 hover:text-green-700 hover:bg-green-50 rounded transition-colors`}
                 title="Mark as complete"
+                data-action-button
               >
                 <Check className={`${isSubTask ? 'w-3 h-3' : 'w-4 h-4'}`} />
               </button>
@@ -212,11 +234,12 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
                 }}
                 className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
                 title="Add sub-task"
+                data-action-button
               >
                 <Plus className="w-4 h-4" />
               </button>
             )}
-            <div className="relative">
+            <div className="relative" data-menu>
               <button
                 onClick={(e) => {
                   e.preventDefault()
@@ -224,6 +247,7 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
                   setShowMenu(!showMenu)
                 }}
                 className={`text-gray-400 hover:text-gray-600 ${isSubTask ? 'p-0.5' : 'p-1'} rounded hover:bg-gray-100 transition-colors`}
+                data-action-button
               >
                 <MoreHorizontal className={`${isSubTask ? 'w-3 h-3' : 'w-4 h-4'}`} />
               </button>
@@ -320,12 +344,30 @@ function Column({ status, tasks, onAddTask, onEditTask, onDeleteTask, onComplete
     id: `column-${status.id}`,
   })
 
+  // Determine column background color based on status name
+  const getColumnColor = (statusName: string) => {
+    const name = statusName.toLowerCase()
+    if (name.includes('to do') || name.includes('todo') || name.includes('backlog')) {
+      return 'bg-slate-100'
+    } else if (name.includes('progress') || name.includes('doing') || name.includes('active')) {
+      return 'bg-yellow-100'
+    } else if (name.includes('review') || name.includes('testing') || name.includes('qa')) {
+      return 'bg-orange-100'
+    } else if (name.includes('done') || name.includes('complete') || name.includes('finished')) {
+      return 'bg-green-100'
+    } else {
+      return 'bg-gray-100'
+    }
+  }
+
+  const columnBgColor = getColumnColor(status.name)
+
   return (
     <div className="flex-shrink-0 w-72">
       <div 
         ref={setNodeRef}
-        className={`bg-gray-50 rounded-lg p-4 transition-colors ${
-          isOver ? 'bg-blue-50 ring-2 ring-blue-200' : ''
+        className={`${columnBgColor} rounded-lg p-4 transition-colors border border-gray-200 ${
+          isOver ? 'ring-2 ring-blue-300 bg-blue-50' : ''
         }`}
       >
         <div className="flex items-center justify-between mb-4">
