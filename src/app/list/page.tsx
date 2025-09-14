@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSession } from 'next-auth/react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Calendar, MoreHorizontal, Plus, ArrowLeft, Trash2, Check, X, Edit3, ChevronDown, ChevronRight } from 'lucide-react'
 import { getUserWorkspaces } from '@/lib/api/users'
@@ -59,6 +59,7 @@ interface Project {
 function ListPageContent() {
   const { data: session, status } = useSession()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const projectId = searchParams.get('project')
 
   const [tasks, setTasks] = useState<Task[]>([])
@@ -66,16 +67,50 @@ function ListPageContent() {
   const [projects, setProjects] = useState<Project[]>([])
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
+  const [redirecting, setRedirecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
 
+  // Redirect to new nested route structure
+  useEffect(() => {
+    const redirectToNestedRoute = async () => {
+      if (session?.user?.id && !redirecting) {
+        setRedirecting(true)
+        try {
+          // Get user's workspaces
+          const userWorkspaces = await getUserWorkspaces(session.user.id)
+          
+          if (userWorkspaces.length > 0) {
+            const workspaceId = userWorkspaces[0].id
+            
+            // Get projects from the workspace
+            const { projects: workspaceProjects } = await getProjects(workspaceId)
+            
+            if (workspaceProjects.length > 0) {
+              // Find the project or use the first one
+              const currentProject = workspaceProjects.find(p => p.id === projectId) || workspaceProjects[0]
+              
+              // Redirect to the new nested route
+              router.replace(`/workspace/${workspaceId}/project/${currentProject.id}/list`)
+            }
+          }
+        } catch (error) {
+          console.error('Error during redirect:', error)
+          setRedirecting(false)
+        }
+      }
+    }
+
+    redirectToNestedRoute()
+  }, [session, projectId, router, redirecting])
+
   // Load data
   useEffect(() => {
-    if (status === 'authenticated' && session?.user) {
+    if (status === 'authenticated' && session?.user && !redirecting) {
       loadData()
     }
-  }, [status, session, projectId])
+  }, [status, session, projectId, redirecting])
 
   const loadData = async () => {
     try {
@@ -219,8 +254,15 @@ function ListPageContent() {
     return 'bg-gray-100 text-gray-800 border-gray-200'
   }
 
-  if (status === 'loading') {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+  if (status === 'loading' || redirecting) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <p className="text-gray-600">{redirecting ? 'Redirecting...' : 'Loading...'}</p>
+        </div>
+      </div>
+    )
   }
 
   if (status === 'unauthenticated') {

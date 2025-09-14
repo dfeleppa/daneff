@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSession } from 'next-auth/react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AppLayout from '@/components/AppLayout'
 import { Gantt, Task as GanttTask, ViewMode } from 'gantt-task-react'
@@ -47,6 +47,7 @@ interface Project {
 function GanttPageContent() {
   const { data: session, status } = useSession()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const projectId = searchParams?.get('project')
 
   const [projects, setProjects] = useState<Project[]>([])
@@ -54,14 +55,48 @@ function GanttPageContent() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [ganttTasks, setGanttTasks] = useState<GanttTask[]>([])
   const [loading, setLoading] = useState(true)
+  const [redirecting, setRedirecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Day)
 
+  // Redirect to new nested route structure
   useEffect(() => {
-    if (session?.user?.id) {
+    const redirectToNestedRoute = async () => {
+      if (session?.user?.id && !redirecting) {
+        setRedirecting(true)
+        try {
+          // Get user's workspaces
+          const userWorkspaces = await getUserWorkspaces(session.user.id)
+          
+          if (userWorkspaces.length > 0) {
+            const workspaceId = userWorkspaces[0].id
+            
+            // Get projects from the workspace
+            const { projects: workspaceProjects } = await getProjects(workspaceId)
+            
+            if (workspaceProjects.length > 0) {
+              // Find the project or use the first one
+              const currentProject = workspaceProjects.find(p => p.id === projectId) || workspaceProjects[0]
+              
+              // Redirect to the new nested route
+              router.replace(`/workspace/${workspaceId}/project/${currentProject.id}/gantt`)
+            }
+          }
+        } catch (error) {
+          console.error('Error during redirect:', error)
+          setRedirecting(false)
+        }
+      }
+    }
+
+    redirectToNestedRoute()
+  }, [session, projectId, router, redirecting])
+
+  useEffect(() => {
+    if (session?.user?.id && !redirecting) {
       loadGanttData()
     }
-  }, [session, projectId])
+  }, [session, projectId, redirecting])
 
   useEffect(() => {
     if (tasks.length > 0) {
@@ -202,10 +237,13 @@ function GanttPageContent() {
     }
   }
 
-  if (status === 'loading' || loading) {
+  if (status === 'loading' || loading || redirecting) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">{redirecting ? 'Redirecting...' : 'Loading...'}</p>
+        </div>
       </div>
     )
   }

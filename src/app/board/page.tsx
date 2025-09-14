@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSession } from 'next-auth/react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   DndContext,
@@ -550,6 +550,7 @@ function Column({ status, tasks, onAddTask, onEditTask, onDeleteTask, onComplete
 function BoardPageContent() {
   const { data: session, status } = useSession()
   const searchParams = useSearchParams()
+  const router = useRouter()
   const projectId = searchParams?.get('project')
 
   const [projects, setProjects] = useState<Project[]>([])
@@ -558,6 +559,7 @@ function BoardPageContent() {
   const [taskStatuses, setTaskStatuses] = useState<TaskStatus[]>([])
   const [collapsedTasks, setCollapsedTasks] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
+  const [redirecting, setRedirecting] = useState(false)
   const [showNewTaskModal, setShowNewTaskModal] = useState(false)
   const [showEditTaskModal, setShowEditTaskModal] = useState(false)
   const [showSubTaskModal, setShowSubTaskModal] = useState(false)
@@ -598,11 +600,44 @@ function BoardPageContent() {
     }
   }, [error, success])
 
+  // Redirect to new nested route structure
   useEffect(() => {
-    if (session?.user?.id) {
+    const redirectToNestedRoute = async () => {
+      if (session?.user?.id && !redirecting) {
+        setRedirecting(true)
+        try {
+          // Get user's workspaces
+          const userWorkspaces = await getUserWorkspaces(session.user.id)
+          
+          if (userWorkspaces.length > 0) {
+            const workspaceId = userWorkspaces[0].id
+            
+            // Get projects from the workspace
+            const { projects: workspaceProjects } = await getProjects(workspaceId)
+            
+            if (workspaceProjects.length > 0) {
+              // Find the project or use the first one
+              const currentProject = workspaceProjects.find(p => p.id === projectId) || workspaceProjects[0]
+              
+              // Redirect to the new nested route
+              router.replace(`/workspace/${workspaceId}/project/${currentProject.id}/board`)
+            }
+          }
+        } catch (error) {
+          console.error('Error during redirect:', error)
+          setRedirecting(false)
+        }
+      }
+    }
+
+    redirectToNestedRoute()
+  }, [session, projectId, router, redirecting])
+
+  useEffect(() => {
+    if (session?.user?.id && !redirecting) {
       loadBoardData()
     }
-  }, [session, projectId])
+  }, [session, projectId, redirecting])
 
   const loadBoardData = async () => {
     if (!session?.user?.id) return
@@ -989,10 +1024,13 @@ function BoardPageContent() {
     }
   }
 
-  if (status === 'loading' || loading) {
+  if (status === 'loading' || loading || redirecting) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">{redirecting ? 'Redirecting...' : 'Loading...'}</p>
+        </div>
       </div>
     )
   }
