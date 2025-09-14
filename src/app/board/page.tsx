@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSession } from 'next-auth/react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
   DndContext,
@@ -551,6 +551,7 @@ function BoardPageContent() {
   const { data: session, status } = useSession()
   const searchParams = useSearchParams()
   const router = useRouter()
+  const pathname = usePathname()
   const projectId = searchParams?.get('project')
 
   const [projects, setProjects] = useState<Project[]>([])
@@ -600,10 +601,11 @@ function BoardPageContent() {
     }
   }, [error, success])
 
-  // Redirect to new nested route structure
+  // Redirect to new nested route structure - ONLY if on old route
   useEffect(() => {
     const redirectToNestedRoute = async () => {
-      if (session?.user?.id && !redirecting) {
+      // Only redirect if we're on the old /board route (not the nested route)
+      if (session?.user?.id && !redirecting && pathname === '/board') {
         setRedirecting(true)
         try {
           // Get user's workspaces
@@ -631,13 +633,14 @@ function BoardPageContent() {
     }
 
     redirectToNestedRoute()
-  }, [session, projectId, router, redirecting])
+  }, [session, projectId, router, redirecting, pathname])
 
   useEffect(() => {
-    if (session?.user?.id && !redirecting) {
+    // Only load board data if we're NOT on the old route (to avoid loading before redirect)
+    if (session?.user?.id && !redirecting && pathname !== '/board') {
       loadBoardData()
     }
-  }, [session, projectId, redirecting])
+  }, [session, projectId, redirecting, pathname])
 
   const loadBoardData = async () => {
     if (!session?.user?.id) return

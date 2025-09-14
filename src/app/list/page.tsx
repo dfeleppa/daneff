@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSession } from 'next-auth/react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Calendar, MoreHorizontal, Plus, ArrowLeft, Trash2, Check, X, Edit3, ChevronDown, ChevronRight } from 'lucide-react'
 import { getUserWorkspaces } from '@/lib/api/users'
@@ -60,6 +60,7 @@ function ListPageContent() {
   const { data: session, status } = useSession()
   const searchParams = useSearchParams()
   const router = useRouter()
+  const pathname = usePathname()
   const projectId = searchParams.get('project')
 
   const [tasks, setTasks] = useState<Task[]>([])
@@ -72,10 +73,11 @@ function ListPageContent() {
   const [success, setSuccess] = useState<string | null>(null)
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
 
-  // Redirect to new nested route structure
+  // Redirect to new nested route structure - ONLY if on old route
   useEffect(() => {
     const redirectToNestedRoute = async () => {
-      if (session?.user?.id && !redirecting) {
+      // Only redirect if we're on the old /list route (not the nested route)
+      if (session?.user?.id && !redirecting && pathname === '/list') {
         setRedirecting(true)
         try {
           // Get user's workspaces
@@ -103,14 +105,14 @@ function ListPageContent() {
     }
 
     redirectToNestedRoute()
-  }, [session, projectId, router, redirecting])
+  }, [session, projectId, router, redirecting, pathname])
 
-  // Load data
+  // Load data - only if NOT on old route (to avoid loading before redirect)
   useEffect(() => {
-    if (status === 'authenticated' && session?.user && !redirecting) {
+    if (status === 'authenticated' && session?.user && !redirecting && pathname !== '/list') {
       loadData()
     }
-  }, [status, session, projectId, redirecting])
+  }, [status, session, projectId, redirecting, pathname])
 
   const loadData = async () => {
     try {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSession } from 'next-auth/react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import AppLayout from '@/components/AppLayout'
 import { Gantt, Task as GanttTask, ViewMode } from 'gantt-task-react'
@@ -48,6 +48,7 @@ function GanttPageContent() {
   const { data: session, status } = useSession()
   const searchParams = useSearchParams()
   const router = useRouter()
+  const pathname = usePathname()
   const projectId = searchParams?.get('project')
 
   const [projects, setProjects] = useState<Project[]>([])
@@ -59,10 +60,11 @@ function GanttPageContent() {
   const [error, setError] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Day)
 
-  // Redirect to new nested route structure
+  // Redirect to new nested route structure - ONLY if on old route
   useEffect(() => {
     const redirectToNestedRoute = async () => {
-      if (session?.user?.id && !redirecting) {
+      // Only redirect if we're on the old /gantt route (not the nested route)
+      if (session?.user?.id && !redirecting && pathname === '/gantt') {
         setRedirecting(true)
         try {
           // Get user's workspaces
@@ -90,13 +92,14 @@ function GanttPageContent() {
     }
 
     redirectToNestedRoute()
-  }, [session, projectId, router, redirecting])
+  }, [session, projectId, router, redirecting, pathname])
 
   useEffect(() => {
-    if (session?.user?.id && !redirecting) {
+    // Only load data if we're NOT on the old route (to avoid loading before redirect)
+    if (session?.user?.id && !redirecting && pathname !== '/gantt') {
       loadGanttData()
     }
-  }, [session, projectId, redirecting])
+  }, [session, projectId, redirecting, pathname])
 
   useEffect(() => {
     if (tasks.length > 0) {
