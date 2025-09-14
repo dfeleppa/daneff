@@ -87,6 +87,9 @@ interface TaskCardProps {
 
 function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTask }: TaskCardProps) {
   const [showMenu, setShowMenu] = useState(false)
+  const [isPointerDown, setIsPointerDown] = useState(false)
+  const [dragStartTime, setDragStartTime] = useState(0)
+  const [startCoords, setStartCoords] = useState({ x: 0, y: 0 })
   
   const {
     attributes,
@@ -95,7 +98,10 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: task.id })
+  } = useSortable({ 
+    id: task.id,
+    disabled: false
+  })
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -113,20 +119,53 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
   const isCompleted = task.status?.name.toLowerCase().includes('done') || 
                      task.status?.name.toLowerCase().includes('complete')
 
-  // Handle card click for editing
-  const handleCardClick = (e: React.MouseEvent) => {
-    // Don't trigger if clicking on action buttons or menu
+  // Custom pointer event handlers for click vs drag detection
+  const handlePointerDown = (e: React.PointerEvent) => {
+    // Don't handle pointer events on action buttons
     if ((e.target as HTMLElement).closest('[data-action-button]') || 
         (e.target as HTMLElement).closest('[data-menu]')) {
-      e.preventDefault()
-      e.stopPropagation()
       return
     }
-    // Don't trigger edit during drag operations
-    if (isDragging) {
+
+    setIsPointerDown(true)
+    setDragStartTime(Date.now())
+    setStartCoords({ x: e.clientX, y: e.clientY })
+    
+    // Call the dnd-kit listeners
+    if (listeners?.onPointerDown) {
+      listeners.onPointerDown(e as any)
+    }
+  }
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    // Don't handle pointer events on action buttons
+    if ((e.target as HTMLElement).closest('[data-action-button]') || 
+        (e.target as HTMLElement).closest('[data-menu]')) {
       return
     }
-    onEdit?.(task)
+
+    const timeDiff = Date.now() - dragStartTime
+    const distance = Math.sqrt(
+      Math.pow(e.clientX - startCoords.x, 2) + Math.pow(e.clientY - startCoords.y, 2)
+    )
+
+    // If it was a quick click (< 200ms) and didn't move much (< 5px), treat as click
+    if (timeDiff < 200 && distance < 5 && !isDragging) {
+      onEdit?.(task)
+    }
+
+    setIsPointerDown(false)
+    
+    // Call the dnd-kit listeners
+    if (listeners?.onPointerUp) {
+      listeners.onPointerUp(e as any)
+    }
+  }
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (listeners?.onPointerMove) {
+      listeners.onPointerMove(e as any)
+    }
   }
 
   // Close menu when clicking outside
@@ -143,17 +182,19 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
       ref={setNodeRef}
       style={style}
       {...attributes}
-      {...listeners}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerMove={handlePointerMove}
       className={`
         ${isSubTask 
           ? 'bg-blue-50 rounded-md shadow-sm border-l-4 border-l-blue-400 border-t border-r border-b border-gray-200 p-3 mb-2 ml-4 mr-2' 
           : 'bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-3'
         } 
-        hover:shadow-lg hover:border-gray-300 transition-all group relative cursor-grab active:cursor-grabbing
-        ${isDragging ? 'opacity-50' : ''} 
+        hover:shadow-lg hover:border-gray-300 transition-all group relative 
+        ${isPointerDown ? 'cursor-grabbing' : 'cursor-pointer'}
+        ${isDragging ? 'opacity-50 cursor-grabbing' : ''} 
         ${isCompleted ? (isSubTask ? 'bg-green-100 border-l-green-400' : 'bg-green-50 border-green-200') : ''}
       `}
-      onClick={handleCardClick}
     >
       
       <div className="relative z-20">
