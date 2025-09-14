@@ -118,6 +118,12 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
     // Don't trigger if clicking on action buttons or menu
     if ((e.target as HTMLElement).closest('[data-action-button]') || 
         (e.target as HTMLElement).closest('[data-menu]')) {
+      e.preventDefault()
+      e.stopPropagation()
+      return
+    }
+    // Don't trigger edit during drag operations
+    if (isDragging) {
       return
     }
     onEdit?.(task)
@@ -136,30 +142,19 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
     <div
       ref={setNodeRef}
       style={style}
+      {...attributes}
+      {...listeners}
       className={`
         ${isSubTask 
           ? 'bg-blue-50 rounded-md shadow-sm border-l-4 border-l-blue-400 border-t border-r border-b border-gray-200 p-3 mb-2 ml-4 mr-2' 
           : 'bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-3'
         } 
-        hover:shadow-lg hover:border-gray-300 transition-all group relative cursor-pointer
+        hover:shadow-lg hover:border-gray-300 transition-all group relative cursor-grab active:cursor-grabbing
         ${isDragging ? 'opacity-50' : ''} 
         ${isCompleted ? (isSubTask ? 'bg-green-100 border-l-green-400' : 'bg-green-50 border-green-200') : ''}
       `}
       onClick={handleCardClick}
     >
-      {/* Drag handle - separate from the menu and hover actions */}
-      <div
-        {...attributes}
-        {...listeners}
-        className="absolute inset-0 cursor-grab active:cursor-grabbing z-10"
-        style={{ pointerEvents: showMenu ? 'none' : 'auto' }}
-      />
-      
-      {/* Click overlay for editing */}
-      <div 
-        className="absolute inset-0 z-5 cursor-pointer"
-        onClick={handleCardClick}
-      />
       
       <div className="relative z-20">
         <div className="flex justify-between items-start mb-2">
@@ -194,8 +189,10 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
           
           {/* Action buttons - inline with 3-dots, smaller for sub-tasks */}
           <div 
-            className="flex items-center space-x-1 pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity"
+            className="flex items-center space-x-1 pointer-events-auto opacity-0 group-hover:opacity-100 transition-opacity relative z-30"
             data-action-button
+            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
           >
             {isCompleted ? (
               <button
@@ -204,6 +201,8 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
                   e.stopPropagation()
                   onUncomplete?.(task)
                 }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
                 className={`${isSubTask ? 'p-0.5' : 'p-1'} text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded transition-colors`}
                 title="Mark as incomplete"
                 data-action-button
@@ -217,6 +216,8 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
                   e.stopPropagation()
                   onComplete?.(task)
                 }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
                 className={`${isSubTask ? 'p-0.5' : 'p-1'} text-green-600 hover:text-green-700 hover:bg-green-50 rounded transition-colors`}
                 title="Mark as complete"
                 data-action-button
@@ -232,6 +233,8 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
                   e.stopPropagation()
                   onAddSubTask?.(task)
                 }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
                 className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
                 title="Add sub-task"
                 data-action-button
@@ -246,6 +249,8 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
                   e.stopPropagation()
                   setShowMenu(!showMenu)
                 }}
+                onMouseDown={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
                 className={`text-gray-400 hover:text-gray-600 ${isSubTask ? 'p-0.5' : 'p-1'} rounded hover:bg-gray-100 transition-colors`}
                 data-action-button
               >
@@ -253,7 +258,11 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
               </button>
               
               {showMenu && (
-                <div className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                <div 
+                  className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
                   <button
                     onClick={(e) => {
                       e.preventDefault()
@@ -261,6 +270,8 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
                       setShowMenu(false)
                       onEdit?.(task)
                     }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
                     className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg"
                   >
                     Edit
@@ -272,6 +283,8 @@ function TaskCard({ task, onEdit, onDelete, onComplete, onUncomplete, onAddSubTa
                       setShowMenu(false)
                       onDelete?.(task)
                     }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
                     className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-b-lg flex items-center"
                   >
                     <Trash2 className="w-3 h-3 mr-1" />
