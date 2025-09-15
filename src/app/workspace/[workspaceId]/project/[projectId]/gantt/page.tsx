@@ -346,13 +346,6 @@ function GanttPageContent() {
         
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Link
-              href="/"
-              className="text-gray-500 hover:text-gray-700 flex items-center"
-            >
-              <ArrowLeft className="w-4 h-4 mr-1" />
-              Back to Workspaces
-            </Link>
             <div>
               <h1 className="text-2xl font-bold text-gray-900 mb-1 flex items-center">
                 <BarChart3 className="w-6 h-6 mr-2" />

@@ -1175,13 +1175,6 @@ function BoardPageContent() {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <Link
-                href="/"
-                className="text-gray-500 hover:text-blue-600 flex items-center mb-4 transition-colors font-medium"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Workspaces
-              </Link>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent mb-2">
                 {selectedProject.name}
               </h1>
