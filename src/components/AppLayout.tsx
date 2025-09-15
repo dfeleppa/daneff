@@ -338,7 +338,7 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
       <div className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-72'}`}>
         {/* Fixed Header */}
         <header className="fixed top-0 right-0 left-0 z-30 bg-blue-900/95 backdrop-blur-md border-b border-blue-800/50" style={{ marginLeft: sidebarCollapsed ? '64px' : '288px' }}>
-          <div className="px-6 py-4">
+          <div className="px-6 py-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <h1 className="text-lg font-semibold text-white">
@@ -388,14 +388,14 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
         </header>
 
         {/* Breadcrumb Sub Header */}
-        <div className="fixed top-16 right-0 left-0 z-25 bg-white/95 backdrop-blur-md border-b border-gray-200/50" style={{ marginLeft: sidebarCollapsed ? '64px' : '288px' }}>
+        <div className="fixed top-12 right-0 left-0 z-25 bg-white/95 backdrop-blur-md border-b border-gray-200/50" style={{ marginLeft: sidebarCollapsed ? '64px' : '288px' }}>
           <Breadcrumb />
         </div>
 
         {/* Views/Actions Sub Header */}
         {actions && (
-          <div className="fixed top-28 right-0 left-0 z-20 bg-gray-50/95 backdrop-blur-md border-b border-gray-200/30" style={{ marginLeft: sidebarCollapsed ? '64px' : '288px' }}>
-            <div className="px-6 py-3">
+          <div className="fixed top-24 right-0 left-0 z-20 bg-gray-50/95 backdrop-blur-md border-b border-gray-200/30" style={{ marginLeft: sidebarCollapsed ? '64px' : '288px' }}>
+            <div className="px-6 py-2">
               <div className="flex items-center justify-end space-x-3">
                 {actions}
               </div>
@@ -404,7 +404,7 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
         )}
         
         {/* Content with proper padding for all headers */}
-        <div className={`min-h-screen ${actions ? 'pt-40' : 'pt-28'}`}>
+        <div className={`min-h-screen ${actions ? 'pt-32' : 'pt-24'}`}>
           {children}
         </div>
       </div>

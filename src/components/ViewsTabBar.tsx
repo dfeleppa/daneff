@@ -48,7 +48,7 @@ export default function ViewsTabBar({ workspaceId, projectId, onAddTask }: Views
   ]
 
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center space-x-6">
       <div className="flex items-center space-x-1">
         {views.map((view) => {
           const Icon = view.icon
@@ -73,7 +73,7 @@ export default function ViewsTabBar({ workspaceId, projectId, onAddTask }: Views
         })}
       </div>
       
-      <div className="flex items-center space-x-2">
+      {onAddTask && (
         <button 
           onClick={onAddTask}
           className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
@@ -81,7 +81,7 @@ export default function ViewsTabBar({ workspaceId, projectId, onAddTask }: Views
           <Plus className="w-4 h-4" />
           <span>Add Task</span>
         </button>
-      </div>
+      )}
     </div>
   )
 }
