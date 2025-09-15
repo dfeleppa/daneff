@@ -139,14 +139,14 @@ export default function Breadcrumb() {
 
   if (loading && breadcrumbs.some(b => b.label.includes('Workspace') || b.label.includes('Project'))) {
     return (
-      <div className="flex items-center space-x-2 px-6 py-2 text-sm text-gray-500">
+      <div className="flex items-center space-x-2 px-6 py-1 text-sm text-gray-500">
         <div className="animate-pulse">Loading navigation...</div>
       </div>
     )
   }
 
   return (
-    <nav className="flex items-center space-x-2 px-6 py-2 text-sm">
+    <nav className="flex items-center space-x-2 px-6 py-1 text-sm">
       <Home className="w-4 h-4 text-gray-400" />
       {breadcrumbs.map((item, index) => (
         <div key={index} className="flex items-center space-x-2">
