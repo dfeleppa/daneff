@@ -18,6 +18,7 @@ import {
 import { getUserWorkspaces } from '@/lib/api/users'
 import { getProjects } from '@/lib/api/projects'
 import AppLayout from '@/components/AppLayout'
+import PageHeader from '@/components/PageHeader'
 
 interface Workspace {
   id: string
@@ -127,51 +128,38 @@ export default function WorkspacePage() {
 
   return (
     <AppLayout>
+      <PageHeader
+        overline="Workspace"
+        title={workspace.name}
+        meta={(
+          <div className="flex items-center text-xs sm:text-sm text-gray-500 space-x-4">
+            <div className="flex items-center">
+              <Users className="w-3.5 h-3.5 mr-1" />
+              <span className="capitalize">{workspace.user_role}</span>
+            </div>
+            <div className="flex items-center">
+              <Calendar className="w-3.5 h-3.5 mr-1" />
+              <span>Created {new Date(workspace.created_at).toLocaleDateString()}</span>
+            </div>
+            {workspace.description && (
+              <span className="truncate max-w-xs hidden sm:inline text-gray-600">{workspace.description}</span>
+            )}
+          </div>
+        )}
+        actions={(
+          <Link
+            href={`/workspace/${workspace.id}/projects/new`}
+            className="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            New Project
+          </Link>
+        )}
+      />
       <div className="p-6">
         <div className="max-w-6xl mx-auto">
-          {/* Workspace Info */}
-          <div className="mb-12">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <div className="flex items-center space-x-4 mb-4">
-                  <Link
-                    href="/"
-                    className="text-gray-500 hover:text-blue-600 flex items-center transition-colors"
-                  >
-                    <ArrowLeft className="w-5 h-5 mr-2" />
-                    Workspaces
-                  </Link>
-                  <span className="text-gray-300">/</span>
-                  <span className="text-gray-700 font-medium">{workspace.name}</span>
-                </div>
-                <h2 className="text-4xl font-bold text-gray-800 mb-2">
-                  {workspace.name}
-                </h2>
-                {workspace.description && (
-                  <p className="text-xl text-gray-600">{workspace.description}</p>
-                )}
-                <div className="flex items-center mt-4 text-sm text-gray-500 space-x-6">
-                  <div className="flex items-center">
-                    <Users className="w-4 h-4 mr-1" />
-                    <span className="capitalize">{workspace.user_role}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Calendar className="w-4 h-4 mr-1" />
-                    <span>Created {new Date(workspace.created_at).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              </div>
-              <Link
-                href={`/workspace/${workspace.id}/projects/new`}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 font-medium flex items-center transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                New Project
-              </Link>
-            </div>
-          </div>
 
-        {/* Stats */}
+  {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
           <div className="bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 shadow-lg">
             <div className="flex items-center justify-between">
@@ -224,11 +212,11 @@ export default function WorkspacePage() {
 
         {/* Projects Grid */}
         <div className="mb-12">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-2xl font-bold text-gray-800">Projects</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-800">Projects</h3>
             <Link
               href={`/workspace/${workspace.id}/projects`}
-              className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
+              className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
             >
               View All
             </Link>
@@ -237,13 +225,13 @@ export default function WorkspacePage() {
           {projects.length === 0 ? (
             <div className="text-center py-16 bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-2xl">
               <FolderOpen className="w-24 h-24 text-gray-400 mx-auto mb-6" />
-              <h3 className="text-xl font-semibold text-gray-700 mb-4">No Projects Yet</h3>
-              <p className="text-gray-600 mb-8 max-w-md mx-auto">
+              <h3 className="text-lg font-semibold text-gray-700 mb-4">No Projects Yet</h3>
+              <p className="text-gray-600 mb-6 max-w-md mx-auto text-sm">
                 Get started by creating your first project in this workspace.
               </p>
               <Link
                 href={`/workspace/${workspace.id}/projects/new`}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 font-medium inline-flex items-center transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                className="inline-flex items-center px-5 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
               >
                 <Plus className="w-5 h-5 mr-2" />
                 Create Your First Project

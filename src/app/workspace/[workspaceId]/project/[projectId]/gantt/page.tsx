@@ -6,7 +6,11 @@ import { useParams, useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import AppLayout from '@/components/AppLayout'
 import ViewsTabBar from '@/components/ViewsTabBar'
-import { Gantt, Task as GanttTask, ViewMode } from 'gantt-task-react'
+// NOTE: Temporary removal of gantt-task-react due to build resolution issue.
+// Placeholder types and components below; restore by re-adding dynamic import.
+const ViewMode = { Day: 'Day', Week: 'Week', Month: 'Month' } as const
+type ViewModeType = typeof ViewMode[keyof typeof ViewMode]
+type GanttTask = any
 import { format, addDays, startOfDay, endOfDay, isValid, parseISO } from 'date-fns'
 import { Calendar, ArrowLeft, ZoomIn, ZoomOut, BarChart3 } from 'lucide-react'
 import { getUserWorkspaces } from '@/lib/api/users'
@@ -62,7 +66,7 @@ function GanttPageContent() {
   const [loading, setLoading] = useState(true)
   const [redirecting, setRedirecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Day)
+  const [viewMode, setViewMode] = useState<ViewModeType>(ViewMode.Day)
 
   // Redirect to new nested route structure - ONLY if on old route
   useEffect(() => {
@@ -231,17 +235,10 @@ function GanttPageContent() {
     // Here you could implement task deletion
   }
 
-  const getViewModeLabel = (mode: ViewMode) => {
-    switch (mode) {
-      case ViewMode.Hour: return 'Hours'
-      case ViewMode.QuarterDay: return '6 Hours'
-      case ViewMode.HalfDay: return '12 Hours'
-      case ViewMode.Day: return 'Days'
-      case ViewMode.Week: return 'Weeks'
-      case ViewMode.Month: return 'Months'
-      case ViewMode.Year: return 'Years'
-      default: return 'Days'
-    }
+  const getViewModeLabel = (mode: ViewModeType) => {
+    if (mode === ViewMode.Week) return 'Weeks'
+    if (mode === ViewMode.Month) return 'Months'
+    return 'Days'
   }
 
   if (status === 'loading' || loading || redirecting) {
@@ -333,7 +330,7 @@ function GanttPageContent() {
             <span className="text-sm text-gray-600">View:</span>
             <select
               value={viewMode}
-              onChange={(e) => setViewMode(e.target.value as ViewMode)}
+              onChange={(e) => setViewMode(e.target.value as ViewModeType)}
               className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value={ViewMode.Day}>Days</option>
@@ -358,45 +355,13 @@ function GanttPageContent() {
             </Link>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <div className="p-4 border-b border-gray-200">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Project Timeline ({ganttTasks.length} tasks)
-                </h3>
-                <div className="flex items-center space-x-2 text-xs text-gray-500">
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-red-600 rounded mr-1"></div>
-                    Urgent
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-orange-600 rounded mr-1"></div>
-                    High
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-yellow-600 rounded mr-1"></div>
-                    Medium
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-gray-500 rounded mr-1"></div>
-                    Low
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="gantt-container" style={{ height: '500px', overflow: 'auto' }}>
-              <Gantt
-                tasks={ganttTasks}
-                viewMode={viewMode}
-                onDateChange={handleTaskChange}
-                onDelete={handleTaskDelete}
-                columnWidth={viewMode === ViewMode.Month ? 300 : viewMode === ViewMode.Week ? 100 : 50}
-                listCellWidth="200px"
-                rowHeight={50}
-                barBackgroundColor="#3b82f6"
-                barBackgroundSelectedColor="#1d4ed8"
-              />
-            </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Gantt Temporarily Unavailable</h3>
+            <p className="text-gray-600 text-sm max-w-md mx-auto mb-4">
+              The interactive Gantt chart library could not be bundled. This placeholder prevents the deployment from failing. Restore the chart by re-enabling the dynamic import of <code>gantt-task-react</code>.
+            </p>
+            <pre className="text-xs bg-gray-50 p-3 rounded-md border border-gray-200 overflow-auto mb-4 text-left">Add back dynamic import to enable chart.</pre>
+            <div className="text-xs text-gray-500">Showing {ganttTasks.length} task entries (not rendered)</div>
           </div>
         )}
           </main>
