@@ -248,7 +248,7 @@ function CalendarPageContent() {
 
   return (
     <AppLayout actions={calendarActions}>
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="w-full px-6 py-8">
         {/* Calendar Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between">
@@ -291,7 +291,7 @@ function CalendarPageContent() {
           <div className="grid grid-cols-7">
             {calendarDays.map((date, index) => {
               if (!date) {
-                return <div key={index} className="h-32 bg-gray-50 border-b border-r border-gray-100"></div>
+                return <div key={index} className="h-40 bg-gray-50 border-b border-r border-gray-100"></div>
               }
 
               const dayTasks = getTasksForDate(date)
@@ -301,7 +301,7 @@ function CalendarPageContent() {
               return (
                 <div
                   key={index}
-                  className={`h-32 border-b border-r border-gray-100 p-2 cursor-pointer hover:bg-gray-50 transition-colors ${
+                  className={`h-40 border-b border-r border-gray-100 p-2 cursor-pointer hover:bg-gray-50 transition-colors ${
                     isToday ? 'bg-blue-50' : ''
                   } ${isSelected ? 'bg-blue-100' : ''}`}
                   onClick={() => setSelectedDate(date)}
@@ -313,7 +313,7 @@ function CalendarPageContent() {
                   </div>
                   
                   <div className="space-y-1">
-                    {dayTasks.slice(0, 3).map((task) => (
+                    {dayTasks.slice(0, 4).map((task) => (
                       <div
                         key={task.id}
                         className={`text-xs p-1 rounded text-white truncate ${getPriorityColor(task.priority)}`}
@@ -322,9 +322,9 @@ function CalendarPageContent() {
                         {task.title}
                       </div>
                     ))}
-                    {dayTasks.length > 3 && (
+                    {dayTasks.length > 4 && (
                       <div className="text-xs text-gray-500">
-                        +{dayTasks.length - 3} more
+                        +{dayTasks.length - 4} more
                       </div>
                     )}
                   </div>
