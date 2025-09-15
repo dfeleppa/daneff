@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { Home, Folder, Menu, ChevronLeft, X, Kanban, Calendar, List, ChevronDown, ChevronRight, Building, LogOut, Settings } from 'lucide-react'
 import { getUserWorkspaces } from '@/lib/api/users'
 import { getProjects } from '@/lib/api/projects'
+import Breadcrumb from './Breadcrumb'
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -386,9 +387,14 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
           </div>
         </header>
 
-        {/* Sub Header for Actions */}
+        {/* Breadcrumb Sub Header */}
+        <div className="fixed top-16 right-0 left-0 z-25 bg-white/95 backdrop-blur-md border-b border-gray-200/50" style={{ marginLeft: sidebarCollapsed ? '64px' : '288px' }}>
+          <Breadcrumb />
+        </div>
+
+        {/* Views/Actions Sub Header */}
         {actions && (
-          <div className="fixed top-16 right-0 left-0 z-20 bg-gray-50/95 backdrop-blur-md border-b border-gray-200/30" style={{ marginLeft: sidebarCollapsed ? '64px' : '288px' }}>
+          <div className="fixed top-28 right-0 left-0 z-20 bg-gray-50/95 backdrop-blur-md border-b border-gray-200/30" style={{ marginLeft: sidebarCollapsed ? '64px' : '288px' }}>
             <div className="px-6 py-3">
               <div className="flex items-center justify-end space-x-3">
                 {actions}
@@ -397,8 +403,8 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
           </div>
         )}
         
-        {/* Content with proper padding for both headers */}
-        <div className={`min-h-screen ${actions ? 'pt-32' : 'pt-20'}`}>
+        {/* Content with proper padding for all headers */}
+        <div className={`min-h-screen ${actions ? 'pt-40' : 'pt-28'}`}>
           {children}
         </div>
       </div>

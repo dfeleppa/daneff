@@ -8,6 +8,7 @@ import { Calendar, MoreHorizontal, Plus, ArrowLeft, Trash2, Check, X, Edit3, Che
 import { getUserWorkspaces } from '@/lib/api/users'
 import { getProjects, getProjectTasks, getTaskStatuses, updateTask, createTask, deleteTask, markTaskComplete, markTaskIncomplete, createSubTask } from '@/lib/api/projects'
 import AppLayout from '@/components/AppLayout'
+import ViewsTabBar from '@/components/ViewsTabBar'
 
 interface Task {
   id: string
@@ -306,39 +307,10 @@ function ListPageContent() {
   }
 
   const actions = (
-    <div className="flex items-center space-x-6">
-      <div className="flex items-center space-x-3">
-        <Link
-          href={`/board?project=${selectedProject.id}`}
-          className="px-4 py-2 text-gray-600 hover:text-blue-600 font-medium transition-colors"
-        >
-          Board
-        </Link>
-        <span className="px-4 py-2 text-blue-600 font-medium border-b-2 border-blue-600">
-          List
-        </span>
-        <Link
-          href={`/gantt?project=${selectedProject.id}`}
-          className="px-4 py-2 text-gray-600 hover:text-blue-600 font-medium transition-colors"
-        >
-          Gantt
-        </Link>
-      </div>
-      <select 
-        value={selectedProject.id}
-        onChange={(e) => {
-          const project = projects.find(p => p.id === e.target.value)
-          if (project) {
-            window.location.href = `/list?project=${project.id}`
-          }
-        }}
-        className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all duration-200 shadow-sm"
-      >
-        {projects.map(project => (
-          <option key={project.id} value={project.id}>{project.name}</option>
-        ))}
-      </select>
-    </div>
+    <ViewsTabBar 
+      workspaceId={workspaceId} 
+      projectId={projectId}
+    />
   )
 
   return (
