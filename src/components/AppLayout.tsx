@@ -394,7 +394,7 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
 
         {/* Views/Actions Sub Header */}
         {actions && (
-          <div className="fixed right-0 left-0 z-20 bg-gray-50/95 backdrop-blur-md border-b border-gray-200/30" style={{ marginLeft: sidebarCollapsed ? '64px' : '288px', top: '88px' }}>
+          <div className="fixed right-0 left-0 z-20 bg-gray-50/95 backdrop-blur-md border-b border-gray-200/30" style={{ marginLeft: sidebarCollapsed ? '64px' : '288px', top: '96px' }}>
             <div className="px-6 py-1">
               <div className="flex items-center space-x-3">
                 {actions}
@@ -404,7 +404,7 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
         )}
         
         {/* Content with proper padding for all headers */}
-        <div className={`min-h-screen ${actions ? 'pt-32' : 'pt-24'}`}>
+        <div className={`min-h-screen ${actions ? 'pt-36' : 'pt-28'}`}>
           {children}
         </div>
       </div>
