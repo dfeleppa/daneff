@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { usePathname, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Home, Folder, Menu, ChevronLeft, X, Kanban, Calendar, List, ChevronDown, ChevronRight, Building, LogOut, Settings } from 'lucide-react'
+import { Home, Folder, Menu, ChevronLeft, X, Kanban, Calendar, List, ChevronDown, ChevronRight, Building, LogOut, Settings, Table2, BarChart3 } from 'lucide-react'
 import { getUserWorkspaces } from '@/lib/api/users'
 import { getProjects } from '@/lib/api/projects'
 import Breadcrumb from './Breadcrumb'
@@ -275,6 +275,28 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
                                               <span>List</span>
                                             </Link>
                                             <Link
+                                              href={`/workspace/${workspace.id}/project/${project.id}/calendar`}
+                                              className={`flex items-center space-x-2 px-2 py-1 rounded text-xs transition-all ${
+                                                pathname?.includes('/calendar')
+                                                  ? 'bg-blue-50 text-blue-600 font-medium'
+                                                  : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
+                                              }`}
+                                            >
+                                              <Calendar className="w-3 h-3" />
+                                              <span>Calendar</span>
+                                            </Link>
+                                            <Link
+                                              href={`/workspace/${workspace.id}/project/${project.id}/table`}
+                                              className={`flex items-center space-x-2 px-2 py-1 rounded text-xs transition-all ${
+                                                pathname?.includes('/table')
+                                                  ? 'bg-blue-50 text-blue-600 font-medium'
+                                                  : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
+                                              }`}
+                                            >
+                                              <Table2 className="w-3 h-3" />
+                                              <span>Table</span>
+                                            </Link>
+                                            <Link
                                               href={`/workspace/${workspace.id}/project/${project.id}/gantt`}
                                               className={`flex items-center space-x-2 px-2 py-1 rounded text-xs transition-all ${
                                                 pathname?.includes('/gantt')
@@ -282,7 +304,7 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
                                                   : 'text-gray-500 hover:text-blue-600 hover:bg-blue-50'
                                               }`}
                                             >
-                                              <Calendar className="w-3 h-3" />
+                                              <BarChart3 className="w-3 h-3" />
                                               <span>Gantt</span>
                                             </Link>
                                           </div>
