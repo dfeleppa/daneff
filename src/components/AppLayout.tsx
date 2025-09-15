@@ -336,11 +336,11 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
       {/* Main Content */}
       <div className={`flex-1 transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-72'}`}>
         {/* Fixed Header */}
-        <header className="fixed top-0 right-0 left-0 z-30 bg-white/95 backdrop-blur-md border-b border-gray-200/50" style={{ marginLeft: sidebarCollapsed ? '64px' : '288px' }}>
+        <header className="fixed top-0 right-0 left-0 z-30 bg-blue-900/95 backdrop-blur-md border-b border-blue-800/50" style={{ marginLeft: sidebarCollapsed ? '64px' : '288px' }}>
           <div className="px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <h1 className="text-lg font-semibold text-gray-900">
+                <h1 className="text-lg font-semibold text-white">
                   {getPageTitle()}
                 </h1>
               </div>
@@ -348,17 +348,17 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
                 <div className="relative" ref={userMenuRef}>
                   <button
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
-                    className="flex items-center space-x-2 hover:bg-gray-50 rounded-lg p-2 transition-colors"
+                    className="flex items-center space-x-2 hover:bg-blue-800/50 rounded-lg p-2 transition-colors"
                   >
                     <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
                       {session?.user?.name?.[0] || 'U'}
                     </div>
                     <div className="hidden sm:block text-left">
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-white">
                         {session?.user?.name}
                       </div>
                     </div>
-                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                    <ChevronDown className="w-4 h-4 text-white/70" />
                   </button>
                   
                   {userMenuOpen && (
