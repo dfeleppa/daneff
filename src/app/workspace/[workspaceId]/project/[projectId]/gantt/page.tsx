@@ -1,142 +1,453 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSession } from 'next-auth/react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import AppLayout from '@/components/AppLayout'
+import { Gantt, Task as GanttTask, ViewMode } from 'gantt-task-react'
+import { format, addDays, startOfDay, endOfDay, isValid, parseISO } from 'date-fns'
+import { Calendar, ArrowLeft, ZoomIn, ZoomOut, BarChart3 } from 'lucide-react'
 import { getUserWorkspaces } from '@/lib/api/users'
-import { getProjects } from '@/lib/api/projects'
+import { getProjects, getProjectTasks } from '@/lib/api/projects'
+import 'gantt-task-react/dist/index.css'
 
-interface Workspace {
+interface Task {
   id: string
-  name: string
+  title: string
+  description: string | null
+  status_id: string
+  priority: 'low' | 'medium' | 'high' | 'urgent'
+  due_date: string | null
+  created_at: string
+  assignee?: {
+    id: string
+    name: string
+    avatar_url: string | null
+  }
+  status?: {
+    id: string
+    name: string
+    color: string
+    order_index: number
+  }
 }
 
 interface Project {
   id: string
   name: string
+  description: string | null
   color: string
+  status: string
+  workspace_id: string
+  owner_id: string
+  created_at: string
 }
 
-export default function ProjectGanttPage() {
+function GanttPageContent() {
   const { data: session, status } = useSession()
   const params = useParams()
   const router = useRouter()
+  const pathname = usePathname()
   
+  // Get project and workspace IDs from URL params
   const workspaceId = params.workspaceId as string
   const projectId = params.projectId as string
 
-  const [workspace, setWorkspace] = useState<Workspace | null>(null)
-  const [project, setProject] = useState<Project | null>(null)
+  const [projects, setProjects] = useState<Project[]>([])
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null)
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [ganttTasks, setGanttTasks] = useState<GanttTask[]>([])
   const [loading, setLoading] = useState(true)
+  const [redirecting, setRedirecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Day)
+
+  // Redirect to new nested route structure - ONLY if on old route
+  useEffect(() => {
+    const redirectToNestedRoute = async () => {
+      // Only redirect if we're on the old /gantt route (not the nested route)
+      if (session?.user?.id && !redirecting && pathname === '/gantt') {
+        setRedirecting(true)
+        try {
+          // Get user's workspaces
+          const userWorkspaces = await getUserWorkspaces(session.user.id)
+          
+          if (userWorkspaces.length > 0) {
+            const workspaceId = userWorkspaces[0].id
+            
+            // Get projects from the workspace
+            const { projects: workspaceProjects } = await getProjects(workspaceId)
+            
+            if (workspaceProjects.length > 0) {
+              // Find the project or use the first one
+              const currentProject = workspaceProjects.find(p => p.id === projectId) || workspaceProjects[0]
+              
+              // Redirect to the new nested route
+              router.replace(`/workspace/${workspaceId}/project/${currentProject.id}/gantt`)
+            }
+          }
+        } catch (error) {
+          console.error('Error during redirect:', error)
+          setRedirecting(false)
+        }
+      }
+    }
+
+    redirectToNestedRoute()
+  }, [session, projectId, router, redirecting, pathname])
 
   useEffect(() => {
-    if (status === 'authenticated' && session?.user?.id) {
-      loadData()
+    // Only load data if we're NOT on the old route (to avoid loading before redirect)
+    if (session?.user?.id && !redirecting && pathname !== '/gantt') {
+      loadGanttData()
     }
-  }, [status, session, workspaceId, projectId])
+  }, [session, projectId, redirecting, pathname])
 
-  const loadData = async () => {
+  useEffect(() => {
+    if (tasks.length > 0) {
+      convertTasksToGanttFormat()
+    }
+  }, [tasks])
+
+  const loadGanttData = async () => {
+    if (!session?.user?.id) return
+
     try {
       setLoading(true)
       setError(null)
 
-      const userWorkspaces = await getUserWorkspaces(session!.user.id)
-      const currentWorkspace = userWorkspaces.find(w => w.id === workspaceId)
+      // Get user's workspaces
+      const userWorkspaces = await getUserWorkspaces(session.user.id)
       
-      if (!currentWorkspace) {
-        setError('Workspace not found')
+      if (userWorkspaces.length === 0) {
+        setError('No workspace found. Please create a workspace first.')
         return
       }
-      
-      setWorkspace(currentWorkspace)
 
-      const projectsResult = await getProjects(workspaceId)
-      const currentProject = projectsResult.projects?.find(p => p.id === projectId)
-      
-      if (!currentProject) {
-        setError('Project not found')
+      // Get projects from the first workspace
+      const { projects: workspaceProjects } = await getProjects(userWorkspaces[0].id)
+      setProjects(workspaceProjects)
+
+      if (workspaceProjects.length === 0) {
+        setError('No projects found. Please create a project first.')
         return
       }
-      
-      setProject(currentProject)
 
-    } catch (error) {
-      console.error('Error loading data:', error)
-      setError('Failed to load data')
+      // Set selected project
+      let currentProject = workspaceProjects.find(p => p.id === projectId) || workspaceProjects[0]
+      setSelectedProject(currentProject)
+
+      if (currentProject) {
+        console.log('Loading Gantt data for project:', currentProject.name, currentProject.id)
+        
+        // Get tasks for the project
+        const { tasks: projectTasks, error: tasksError } = await getProjectTasks(currentProject.id)
+        if (tasksError) {
+          setError(`Failed to load tasks: ${tasksError.message}`)
+          return
+        }
+        setTasks(projectTasks)
+        
+        console.log('Gantt data loaded successfully:', {
+          project: currentProject.name,
+          tasks: projectTasks.length
+        })
+      }
+    } catch (error: any) {
+      console.error('Error loading Gantt data:', error)
+      setError(`Failed to load Gantt chart: ${error.message || 'Unknown error'}`)
     } finally {
       setLoading(false)
     }
   }
 
-  if (status === 'loading' || loading) {
+  const convertTasksToGanttFormat = () => {
+    const today = new Date()
+    
+    const ganttData: GanttTask[] = tasks
+      .filter(task => task.due_date) // Only include tasks with due dates
+      .map((task, index) => {
+        let startDate = startOfDay(parseISO(task.created_at))
+        let endDate: Date
+
+        if (task.due_date && isValid(parseISO(task.due_date))) {
+          endDate = endOfDay(parseISO(task.due_date))
+        } else {
+          // If no due date, make it a 1-day task starting from creation
+          endDate = endOfDay(addDays(startDate, 1))
+        }
+
+        // Ensure end date is after start date
+        if (endDate <= startDate) {
+          endDate = endOfDay(addDays(startDate, 1))
+        }
+
+        // Get progress based on status
+        let progress = 0
+        if (task.status?.name.toLowerCase().includes('progress')) {
+          progress = 50
+        } else if (task.status?.name.toLowerCase().includes('review')) {
+          progress = 75
+        } else if (task.status?.name.toLowerCase().includes('done') || task.status?.name.toLowerCase().includes('complete')) {
+          progress = 100
+        }
+
+        return {
+          id: task.id,
+          name: task.title,
+          start: startDate,
+          end: endDate,
+          progress,
+          type: 'task' as const,
+          displayOrder: index + 1,
+          styles: {
+            backgroundColor: task.priority === 'urgent' ? '#dc2626' :
+                           task.priority === 'high' ? '#ea580c' :
+                           task.priority === 'medium' ? '#ca8a04' :
+                           '#6b7280',
+            backgroundSelectedColor: task.priority === 'urgent' ? '#b91c1c' :
+                                   task.priority === 'high' ? '#c2410c' :
+                                   task.priority === 'medium' ? '#a16207' :
+                                   '#4b5563',
+            progressColor: '#10b981',
+            progressSelectedColor: '#059669'
+          }
+        }
+      })
+
+    setGanttTasks(ganttData)
+  }
+
+  const handleTaskChange = (task: GanttTask) => {
+    console.log('Task changed:', task)
+    // Here you could implement updating the task dates in the database
+    setGanttTasks(prev => prev.map(t => t.id === task.id ? task : t))
+  }
+
+  const handleTaskDelete = (task: GanttTask) => {
+    console.log('Task delete requested:', task)
+    // Here you could implement task deletion
+  }
+
+  const getViewModeLabel = (mode: ViewMode) => {
+    switch (mode) {
+      case ViewMode.Hour: return 'Hours'
+      case ViewMode.QuarterDay: return '6 Hours'
+      case ViewMode.HalfDay: return '12 Hours'
+      case ViewMode.Day: return 'Days'
+      case ViewMode.Week: return 'Weeks'
+      case ViewMode.Month: return 'Months'
+      case ViewMode.Year: return 'Years'
+      default: return 'Days'
+    }
+  }
+
+  if (status === 'loading' || loading || redirecting) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading Gantt chart...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">{redirecting ? 'Redirecting...' : 'Loading...'}</p>
         </div>
       </div>
     )
   }
 
-  if (error) {
+  if (!session) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Error</h1>
-          <p className="text-gray-600 mb-8">{error}</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Please sign in to continue</h1>
           <Link
-            href={`/workspace/${workspaceId}`}
-            className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors"
+            href="/auth/signin"
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
           >
-            Back to Workspace
+            Sign In
           </Link>
         </div>
       </div>
     )
   }
+
+  if (!selectedProject) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">No Project Selected</h1>
+          <p className="text-gray-600 mb-4">Please select a project to view its Gantt chart.</p>
+          <Link
+            href="/"
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+          >
+            Go to Workspaces
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  const ganttActions = (
+    <div className="flex items-center space-x-6">
+      <div className="flex items-center space-x-3">
+        <Link
+          href={`/board?project=${selectedProject?.id}`}
+          className="px-4 py-2 text-gray-600 hover:text-blue-600 font-medium transition-colors"
+        >
+          Board
+        </Link>
+        <Link
+          href={`/list?project=${selectedProject?.id}`}
+          className="px-4 py-2 text-gray-600 hover:text-blue-600 font-medium transition-colors"
+        >
+          List
+        </Link>
+        <span className="px-4 py-2 text-blue-600 font-medium border-b-2 border-blue-600">
+          Gantt
+        </span>
+      </div>
+      <select 
+        value={selectedProject?.id || ''}
+        onChange={(e) => {
+          const project = projects.find(p => p.id === e.target.value)
+          setSelectedProject(project || null)
+        }}
+        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      >
+        <option value="">Select Project</option>
+        {projects.map(project => (
+          <option key={project.id} value={project.id}>{project.name}</option>
+        ))}
+      </select>
+    </div>
+  )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <div className="container mx-auto px-6 py-8">
-        <div className="flex items-center gap-4 mb-8">
-          <Link
-            href={`/workspace/${workspaceId}/project/${projectId}`}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Project
-          </Link>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-          <div className="flex items-center justify-between mb-6">
+    <AppLayout actions={ganttActions}>
+      <div className="p-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Gantt Content */}
+          <main className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Error Messages */}
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-800">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Link
+              href="/"
+              className="text-gray-500 hover:text-gray-700 flex items-center"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Back to Workspaces
+            </Link>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                📊 {project?.name} Gantt
+              <h1 className="text-2xl font-bold text-gray-900 mb-1 flex items-center">
+                <BarChart3 className="w-6 h-6 mr-2" />
+                {selectedProject.name} - Timeline
               </h1>
-              <p className="text-gray-600 mt-2">Gantt chart view for {project?.name}</p>
+              <p className="text-gray-600">{selectedProject.description || 'Project timeline view'}</p>
             </div>
           </div>
 
-          <div className="text-center py-16">
-            <div className="text-6xl mb-4">📊</div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Gantt Chart View</h3>
-            <p className="text-gray-600 mb-6">
-              Gantt chart functionality coming soon! For now, you can use the legacy gantt view.
-            </p>
-            <Link
-              href={`/gantt?project=${projectId}`}
-              className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+          {/* View Controls */}
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-600">View:</span>
+            <select
+              value={viewMode}
+              onChange={(e) => setViewMode(e.target.value as ViewMode)}
+              className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              📊 Open Legacy Gantt
-            </Link>
+              <option value={ViewMode.Day}>Days</option>
+              <option value={ViewMode.Week}>Weeks</option>
+              <option value={ViewMode.Month}>Months</option>
+            </select>
           </div>
         </div>
+
+        {ganttTasks.length === 0 ? (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+            <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No tasks with due dates</h3>
+            <p className="text-gray-600 mb-4">
+              Add due dates to your tasks to see them in the Gantt chart timeline.
+            </p>
+            <Link
+              href={`/board?project=${selectedProject.id}`}
+              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Go to Board
+            </Link>
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="p-4 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Project Timeline ({ganttTasks.length} tasks)
+                </h3>
+                <div className="flex items-center space-x-2 text-xs text-gray-500">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-red-600 rounded mr-1"></div>
+                    Urgent
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-orange-600 rounded mr-1"></div>
+                    High
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-yellow-600 rounded mr-1"></div>
+                    Medium
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-gray-500 rounded mr-1"></div>
+                    Low
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="gantt-container" style={{ height: '500px', overflow: 'auto' }}>
+              <Gantt
+                tasks={ganttTasks}
+                viewMode={viewMode}
+                onDateChange={handleTaskChange}
+                onDelete={handleTaskDelete}
+                columnWidth={viewMode === ViewMode.Month ? 300 : viewMode === ViewMode.Week ? 100 : 50}
+                listCellWidth="200px"
+                rowHeight={50}
+                barBackgroundColor="#3b82f6"
+                barBackgroundSelectedColor="#1d4ed8"
+              />
+            </div>
+          </div>
+        )}
+          </main>
+        </div>
       </div>
-    </div>
+    </AppLayout>
+  )
+}
+
+export default function GanttPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    }>
+      <GanttPageContent />
+    </Suspense>
   )
 }

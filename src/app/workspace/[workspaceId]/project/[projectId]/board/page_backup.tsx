@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSession } from 'next-auth/react'
-import { useParams, useRouter, usePathname } from 'next/navigation'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
   DndContext,
@@ -549,13 +549,10 @@ function Column({ status, tasks, onAddTask, onEditTask, onDeleteTask, onComplete
 
 function BoardPageContent() {
   const { data: session, status } = useSession()
-  const params = useParams()
+  const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
-  
-  // Get project and workspace IDs from URL params
-  const workspaceId = params.workspaceId as string
-  const projectId = params.projectId as string
+  const projectId = searchParams?.get('project')
 
   const [projects, setProjects] = useState<Project[]>([])
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
