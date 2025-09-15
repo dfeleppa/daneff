@@ -388,13 +388,13 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
         </header>
 
         {/* Breadcrumb Sub Header */}
-        <div className="fixed top-10 right-0 left-0 z-25 bg-white/95 backdrop-blur-md border-b border-gray-200/50" style={{ marginLeft: sidebarCollapsed ? '64px' : '288px' }}>
+        <div className="fixed top-12 right-0 left-0 z-25 bg-white/95 backdrop-blur-md border-b border-gray-200/50" style={{ marginLeft: sidebarCollapsed ? '64px' : '288px' }}>
           <Breadcrumb />
         </div>
 
         {/* Views/Actions Sub Header */}
         {actions && (
-          <div className="fixed top-20 right-0 left-0 z-20 bg-gray-50/95 backdrop-blur-md border-b border-gray-200/30" style={{ marginLeft: sidebarCollapsed ? '64px' : '288px' }}>
+          <div className="fixed top-24 right-0 left-0 z-20 bg-gray-50/95 backdrop-blur-md border-b border-gray-200/30" style={{ marginLeft: sidebarCollapsed ? '64px' : '288px' }}>
             <div className="px-6 py-1">
               <div className="flex items-center space-x-3">
                 {actions}
@@ -404,7 +404,7 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
         )}
         
         {/* Content with proper padding for all headers */}
-        <div className={`min-h-screen ${actions ? 'pt-28' : 'pt-20'}`}>
+        <div className={`min-h-screen ${actions ? 'pt-32' : 'pt-24'}`}>
           {children}
         </div>
       </div>
