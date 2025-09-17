@@ -83,6 +83,7 @@ export default function NewProjectPage() {
             <input
               type="text"
               id="name"
+              name="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
@@ -97,6 +98,7 @@ export default function NewProjectPage() {
             </label>
             <textarea
               id="description"
+              name="description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
@@ -113,6 +115,7 @@ export default function NewProjectPage() {
               <input
                 type="color"
                 id="color"
+                name="color"
                 value={formData.color}
                 onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                 className="w-16 h-10 rounded border border-gray-300"
@@ -127,6 +130,7 @@ export default function NewProjectPage() {
             </label>
             <select
               id="status"
+              name="status"
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'on_hold' | 'completed' | 'archived' })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"

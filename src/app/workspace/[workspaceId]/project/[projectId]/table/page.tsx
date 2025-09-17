@@ -313,6 +313,8 @@ function TablePageContent() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
+                  id="table-search-tasks"
+                  name="search"
                   type="text"
                   placeholder="Search tasks..."
                   value={searchQuery}
@@ -322,6 +324,8 @@ function TablePageContent() {
               </div>
               
               <select
+                id="table-status-filter"
+                name="statusFilter"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -333,6 +337,8 @@ function TablePageContent() {
               </select>
               
               <select
+                id="table-priority-filter"
+                name="priorityFilter"
                 value={priorityFilter}
                 onChange={(e) => setPriorityFilter(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"

@@ -322,6 +322,8 @@ function ListPageContent() {
         </Link>
       </div>
       <select 
+        id="list-project-selector"
+        name="projectId"
         value={selectedProject.id}
         onChange={(e) => {
           const project = projects.find(p => p.id === e.target.value)
