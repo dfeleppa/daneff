@@ -478,6 +478,8 @@ export default function ProjectsPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <input
+                  id="project-search"
+                  name="search"
                   type="text"
                   placeholder="Search projects..."
                   value={searchTerm}
@@ -488,6 +490,8 @@ export default function ProjectsPage() {
             </div>
             <div className="flex gap-2">
               <select
+                id="project-status-filter"
+                name="statusFilter"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -641,6 +645,8 @@ export default function ProjectsPage() {
                   Project Name *
                 </label>
                 <input
+                  id="new-project-name"
+                  name="name"
                   type="text"
                   required
                   value={newProject.name}
@@ -655,6 +661,8 @@ export default function ProjectsPage() {
                   Description
                 </label>
                 <textarea
+                  id="new-project-description"
+                  name="description"
                   value={newProject.description}
                   onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-20"
@@ -686,6 +694,8 @@ export default function ProjectsPage() {
                   Due Date (Optional)
                 </label>
                 <input
+                  id="new-project-due-date"
+                  name="dueDate"
                   type="date"
                   value={newProject.due_date}
                   onChange={(e) => setNewProject({ ...newProject, due_date: e.target.value })}
@@ -703,6 +713,8 @@ export default function ProjectsPage() {
                   Status
                 </label>
                 <select
+                  id="new-project-status"
+                  name="status"
                   value={newProject.status}
                   onChange={(e) => setNewProject({ ...newProject, status: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -752,6 +764,8 @@ export default function ProjectsPage() {
                   Project Name *
                 </label>
                 <input
+                  id="edit-project-name"
+                  name="name"
                   type="text"
                   required
                   value={editingProject.name}
@@ -765,6 +779,8 @@ export default function ProjectsPage() {
                   Description
                 </label>
                 <textarea
+                  id="edit-project-description"
+                  name="description"
                   value={editingProject.description || ''}
                   onChange={(e) => setEditingProject({ ...editingProject, description: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-20"
@@ -795,6 +811,8 @@ export default function ProjectsPage() {
                   Status
                 </label>
                 <select
+                  id="edit-project-status"
+                  name="status"
                   value={editingProject.status}
                   onChange={(e) => setEditingProject({ ...editingProject, status: e.target.value as 'active' | 'on_hold' | 'completed' | 'archived' })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"

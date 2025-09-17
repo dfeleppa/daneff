@@ -1112,6 +1112,8 @@ function BoardPageContent() {
       </div>
       <div className="flex items-center space-x-3">
         <select 
+          id="board-project-selector"
+          name="projectId"
           value={selectedProject.id}
           onChange={(e) => {
             const project = projects.find(p => p.id === e.target.value)
@@ -1243,6 +1245,8 @@ function BoardPageContent() {
                   Task Title *
                 </label>
                 <input
+                  id="new-task-title"
+                  name="title"
                   type="text"
                   required
                   value={newTask.title}
@@ -1257,6 +1261,8 @@ function BoardPageContent() {
                   Description
                 </label>
                 <textarea
+                  id="new-task-description"
+                  name="description"
                   value={newTask.description}
                   onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-20"
@@ -1269,6 +1275,8 @@ function BoardPageContent() {
                   Priority
                 </label>
                 <select
+                  id="new-task-priority"
+                  name="priority"
                   value={newTask.priority}
                   onChange={(e) => setNewTask({ ...newTask, priority: e.target.value as 'low' | 'medium' | 'high' | 'urgent' })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1285,6 +1293,8 @@ function BoardPageContent() {
                   Due Date
                 </label>
                 <input
+                  id="new-task-due-date"
+                  name="dueDate"
                   type="date"
                   value={newTask.due_date}
                   onChange={(e) => setNewTask({ ...newTask, due_date: e.target.value })}
@@ -1330,6 +1340,8 @@ function BoardPageContent() {
                   Task Title *
                 </label>
                 <input
+                  id="edit-task-title"
+                  name="title"
                   type="text"
                   required
                   value={editingTask.title}
@@ -1344,6 +1356,8 @@ function BoardPageContent() {
                   Description
                 </label>
                 <textarea
+                  id="edit-task-description"
+                  name="description"
                   value={editingTask.description || ''}
                   onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-20"
@@ -1356,6 +1370,8 @@ function BoardPageContent() {
                   Priority
                 </label>
                 <select
+                  id="edit-task-priority"
+                  name="priority"
                   value={editingTask.priority}
                   onChange={(e) => setEditingTask({ ...editingTask, priority: e.target.value as 'low' | 'medium' | 'high' | 'urgent' })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1372,6 +1388,8 @@ function BoardPageContent() {
                   Due Date
                 </label>
                 <input
+                  id="edit-task-due-date"
+                  name="dueDate"
                   type="date"
                   value={editingTask.due_date || ''}
                   onChange={(e) => setEditingTask({ ...editingTask, due_date: e.target.value })}
@@ -1422,6 +1440,8 @@ function BoardPageContent() {
                   Sub-task Title *
                 </label>
                 <input
+                  id="new-subtask-title"
+                  name="title"
                   type="text"
                   required
                   value={newSubTask.title}
@@ -1436,6 +1456,8 @@ function BoardPageContent() {
                   Description
                 </label>
                 <textarea
+                  id="new-subtask-description"
+                  name="description"
                   value={newSubTask.description}
                   onChange={(e) => setNewSubTask({ ...newSubTask, description: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-20"
@@ -1448,6 +1470,8 @@ function BoardPageContent() {
                   Priority
                 </label>
                 <select
+                  id="new-subtask-priority"
+                  name="priority"
                   value={newSubTask.priority}
                   onChange={(e) => setNewSubTask({ ...newSubTask, priority: e.target.value as 'low' | 'medium' | 'high' | 'urgent' })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"

@@ -325,6 +325,8 @@ function GanttPageContent() {
           <div className="flex items-center space-x-2">
             <span className="text-sm text-gray-600">View:</span>
             <select
+              id="gantt-view-mode"
+              name="viewMode"
               value={viewMode}
               onChange={(e) => setViewMode(e.target.value as ViewModeType)}
               className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
