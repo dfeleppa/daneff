@@ -10,7 +10,6 @@ import { format, addDays, startOfDay, endOfDay, isValid, parseISO } from 'date-f
 import { Calendar, ArrowLeft, ZoomIn, ZoomOut, BarChart3 } from 'lucide-react'
 import { getUserWorkspaces } from '@/lib/api/users'
 import { getProjects, getProjectTasks } from '@/lib/api/projects'
-import 'gantt-task-react/dist/index.css'
 
 interface Task {
   id: string
@@ -228,16 +227,9 @@ function GanttPageContent() {
   }
 
   const getViewModeLabel = (mode: ViewMode) => {
-    switch (mode) {
-      case ViewMode.Hour: return 'Hours'
-      case ViewMode.QuarterDay: return '6 Hours'
-      case ViewMode.HalfDay: return '12 Hours'
-      case ViewMode.Day: return 'Days'
-      case ViewMode.Week: return 'Weeks'
-      case ViewMode.Month: return 'Months'
-      case ViewMode.Year: return 'Years'
-      default: return 'Days'
-    }
+    if (mode === ViewMode.Week) return 'Weeks'
+    if (mode === ViewMode.Month) return 'Months'
+    return 'Days'
   }
 
   if (status === 'loading' || loading || redirecting) {
