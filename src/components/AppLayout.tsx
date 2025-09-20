@@ -151,7 +151,7 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-all text-sm ${
+                  className={`flex items-center space-x-3 px-2 py-1 rounded-lg transition-all text-sm ${
                     item.current
                       ? 'bg-blue-50 text-blue-600 font-medium'
                       : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
@@ -166,7 +166,7 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
             {/* Workspaces Section - ALWAYS VISIBLE */}
             <div>
               {/* Workspaces Header */}
-              <div className="flex items-center justify-between px-3 py-2 rounded-lg transition-all text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50">
+              <div className="flex items-center justify-between px-2 py-1 rounded-lg transition-all text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50">
                 <div className="flex items-center space-x-3 flex-1">
                   <Building className="w-5 h-5" />
                   {!sidebarCollapsed && <span className="font-medium">Workspaces</span>}
@@ -190,14 +190,14 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
                 }`}>
                   <div className="ml-6 mt-2 space-y-1">
                     {loadingWorkspaces ? (
-                      <div className="px-3 py-2 text-sm text-gray-500">Loading workspaces...</div>
+                      <div className="px-2 py-1 text-sm text-gray-500">Loading workspaces...</div>
                     ) : workspaces.length > 0 ? (
                       workspaces.map((workspace) => (
                         <div key={workspace.id}>
                           {/* Workspace Link */}
                           <Link
                             href={`/workspace/${workspace.id}`}
-                            className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all ${
+                            className={`flex items-center space-x-3 px-2 py-1 rounded-lg text-sm transition-all ${
                               workspace.id === currentWorkspaceId 
                                 ? 'bg-blue-50 text-blue-600 font-medium'
                                 : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
@@ -211,7 +211,7 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
                           {workspace.id === currentWorkspaceId && (
                             <div className="ml-4 mt-1 space-y-1">
                               {/* Projects Header */}
-                              <div className="flex items-center justify-between px-3 py-1 text-xs text-gray-500">
+                              <div className="flex items-center justify-between px-2 py-1 text-xs text-gray-500">
                                 <span>Projects</span>
                                 <button
                                   onClick={() => setProjectsExpanded(!projectsExpanded)}
@@ -229,14 +229,14 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
                               }`}>
                                 <div className="ml-2 space-y-1">
                                   {loadingProjects ? (
-                                    <div className="px-3 py-2 text-xs text-gray-500">Loading...</div>
+                                    <div className="px-2 py-1 text-xs text-gray-500">Loading...</div>
                                   ) : projects.length > 0 ? (
                                     projects.map((project) => (
                                       <div key={project.id}>
                                         {/* Project Link */}
                                         <Link
                                           href={`/workspace/${workspace.id}/project/${project.id}`}
-                                          className={`flex items-center space-x-3 px-3 py-2 rounded-lg text-xs transition-all ${
+                                          className={`flex items-center space-x-3 px-2 py-1 rounded-lg text-xs transition-all ${
                                             project.id === currentProjectId 
                                               ? 'bg-blue-50 text-blue-600 font-medium'
                                               : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
@@ -312,7 +312,7 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
                                       </div>
                                     ))
                                   ) : (
-                                    <div className="px-3 py-2 text-xs text-gray-500">No projects</div>
+                                    <div className="px-2 py-1 text-xs text-gray-500">No projects</div>
                                   )}
                                 </div>
                               </div>
@@ -321,7 +321,7 @@ export default function AppLayout({ children, actions }: AppLayoutProps) {
                         </div>
                       ))
                     ) : (
-                      <div className="px-3 py-2 text-sm text-gray-500">No workspaces found</div>
+                      <div className="px-2 py-1 text-sm text-gray-500">No workspaces found</div>
                     )}
                   </div>
                 </div>
